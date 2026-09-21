@@ -3,29 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Budsjett-app</title>
+  <title>NM Finance</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Supabase JS via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase CDN (Siste stabile versjon) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
   <div class="container">
     <header>
-      <h1>Budsjett</h1>
+      <h1>NM Finance</h1>
       <div id="user-info" class="hidden">
         <span id="user-name"></span>
         <button id="logout-btn" class="btn-secondary">Logg ut</button>
       </div>
     </header>
 
-    <!-- AUTENTISERINGSKORT (Logg inn / Registrer) -->
+    <!-- AUTENTISERINGSKORT -->
     <main id="auth-section">
       <div class="card">
         <div class="tabs">
-          <button id="tab-login" class="tab-btn active">Logg inn</button>
-          <button id="tab-signup" class="tab-btn">Registrer deg</button>
+          <button id="tab-login" type="button" class="tab-btn active">Logg inn</button>
+          <button id="tab-signup" type="button" class="tab-btn">Registrer deg</button>
         </div>
+
+        <!-- Boks for feilmeldinger -->
+        <div id="auth-error" class="error-box hidden"></div>
 
         <!-- Innloggingsskjema -->
         <form id="login-form">
@@ -37,7 +40,7 @@
             <label for="login-password">Passord</label>
             <input type="password" id="login-password" required placeholder="••••••••">
           </div>
-          <button type="submit" class="btn-primary">Logg inn</button>
+          <button type="submit" id="login-submit-btn" class="btn-primary">Logg inn</button>
         </form>
 
         <!-- Registreringsskjema -->
@@ -62,14 +65,13 @@
             <label for="signup-username">Brukernavn</label>
             <input type="text" id="signup-username" required placeholder="olanordmann">
           </div>
-          <button type="submit" class="btn-primary">Opprett konto</button>
+          <button type="submit" id="signup-submit-btn" class="btn-primary">Opprett konto</button>
         </form>
       </div>
     </main>
 
     <!-- HOVEDSIDE (Vises etter innlogging) -->
     <main id="app-section" class="hidden">
-      <!-- Registrer ny transaksjon -->
       <section class="card">
         <h2>Registrer kjøp</h2>
         <form id="transaction-form">
@@ -93,13 +95,10 @@
         </form>
       </section>
 
-      <!-- Transaksjonsliste -->
       <section class="card">
         <h2>Månedens forbruk</h2>
         <div id="total-spent" class="total-display">Totalt: <span>0</span> kr</div>
-        <ul id="transactions-list" class="transaction-list">
-          <!-- Transaksjoner legges inn dynamisk her -->
-        </ul>
+        <ul id="transactions-list" class="transaction-list"></ul>
       </section>
     </main>
   </div>

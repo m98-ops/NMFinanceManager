@@ -46,6 +46,16 @@ h2 { font-size: 1.1rem; margin-bottom: 16px; font-weight: 600; }
   margin-bottom: 20px;
 }
 
+.error-box {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
 .tabs {
   display: flex;
   gap: 8px;

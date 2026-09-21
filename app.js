@@ -1,14 +1,15 @@
-// CONFIG: Dine Supabase-detaljer
 const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.com';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialiser Supabase-klienten
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // DOM-elementer
 const authSection = document.getElementById('auth-section');
 const appSection = document.getElementById('app-section');
 const userInfo = document.getElementById('user-info');
 const userNameDisplay = document.getElementById('user-name');
+const authError = document.getElementById('auth-error');
 
 const tabLogin = document.getElementById('tab-login');
 const tabSignup = document.getElementById('tab-signup');
@@ -20,23 +21,39 @@ const transactionsList = document.getElementById('transactions-list');
 const totalSpentDisplay = document.getElementById('total-spent') ? document.getElementById('total-spent').querySelector('span') : null;
 const transDateInput = document.getElementById('trans-date');
 
-// Sett dagens dato som standard KUN hvis feltet finnes
 if (transDateInput) {
   transDateInput.valueAsDate = new Date();
 }
 
 let currentUser = null;
 
-// --- FANE-NAVIGASJON (INNLOKKING / REGISTRERING) ---
+// Hjælpefunksjon for feilmeldinger
+function showError(msg) {
+  if (!authError) return;
+  authError.textContent = msg;
+  authError.classList.remove('hidden');
+}
+
+function clearError() {
+  if (!authError) return;
+  authError.textContent = '';
+  authError.classList.add('hidden');
+}
+
+// --- BYTTE FANE (LOGG INN / REGISTRER DEG) ---
 if (tabLogin && tabSignup) {
-  tabLogin.addEventListener('click', () => {
+  tabLogin.addEventListener('click', (e) => {
+    e.preventDefault();
+    clearError();
     tabLogin.classList.add('active');
     tabSignup.classList.remove('active');
     loginForm.classList.remove('hidden');
     signupForm.classList.add('hidden');
   });
 
-  tabSignup.addEventListener('click', () => {
+  tabSignup.addEventListener('click', (e) => {
+    e.preventDefault();
+    clearError();
     tabSignup.classList.add('active');
     tabLogin.classList.remove('active');
     signupForm.classList.remove('hidden');
@@ -46,10 +63,17 @@ if (tabLogin && tabSignup) {
 
 // --- AUTENTISERING ---
 
-// Registrer bruker
+// Registrering
 if (signupForm) {
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearError();
+
+    if (!supabase) {
+      showError("Kunne ikke koble til Supabase.");
+      return;
+    }
+
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
     const firstName = document.getElementById('signup-firstname').value;
@@ -69,17 +93,25 @@ if (signupForm) {
     });
 
     if (error) {
-      alert('Feil ved registrering: ' + error.message);
+      showError('Feil ved registrering: ' + error.message);
     } else {
-      alert('Bruker opprettet! Sjekk e-post for bekreftelseslenke eller prøv å logge inn.');
+      alert('Bruker opprettet! Sjekk din e-post hvis du må bekrefte kontoen, eller prøv å logge inn.');
+      tabLogin.click();
     }
   });
 }
 
-// Logg inn
+// Innlogging
 if (loginForm) {
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearError();
+
+    if (!supabase) {
+      showError("Kunne ikke koble til Supabase.");
+      return;
+    }
+
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
@@ -89,7 +121,11 @@ if (loginForm) {
     });
 
     if (error) {
-      alert('Feil ved innlogging: ' + error.message);
+      if (error.message.includes("Invalid login credentials")) {
+        showError("Feil e-post eller passord. Brukeren finnes enten ikke eller passordet er feil.");
+      } else {
+        showError("Feil ved innlogging: " + error.message);
+      }
     } else {
       checkUserSession();
     }
@@ -100,13 +136,15 @@ if (loginForm) {
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
   logoutBtn.addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     checkUserSession();
   });
 }
 
-// --- SJEKK INNLOGGINGSTILSTAND ---
+// --- SJEKK ØKT ---
 async function checkUserSession() {
+  if (!supabase) return;
+
   const { data: { session } } = await supabase.auth.getSession();
   
   if (session) {
@@ -115,11 +153,9 @@ async function checkUserSession() {
     if (appSection) appSection.classList.remove('hidden');
     if (userInfo) userInfo.classList.remove('hidden');
     
-    // Sikker uthenting av navn uten krasj
     const name = currentUser.user_metadata?.first_name || currentUser.email;
     if (userNameDisplay) userNameDisplay.textContent = `Hei, ${name}`;
 
-    // Last inn transaksjoner
     loadTransactions();
   } else {
     currentUser = null;
@@ -130,8 +166,6 @@ async function checkUserSession() {
 }
 
 // --- TRANSAKSJONER ---
-
-// Opprett ny transaksjon
 if (transactionForm) {
   transactionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -163,9 +197,8 @@ if (transactionForm) {
   });
 }
 
-// Last inn og vis transaksjoner
 async function loadTransactions() {
-  if (!transactionsList) return;
+  if (!transactionsList || !supabase) return;
 
   const { data, error } = await supabase
     .from('transactions')
