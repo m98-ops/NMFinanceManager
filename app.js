@@ -1,4 +1,4 @@
-// CONFIG: Erstatt med dine Supabase-detaljer fra Dashboard > Project Settings > API
+// CONFIG: Dine Supabase-detaljer
 const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.com';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
 
@@ -17,82 +17,93 @@ const signupForm = document.getElementById('signup-form');
 
 const transactionForm = document.getElementById('transaction-form');
 const transactionsList = document.getElementById('transactions-list');
-const totalSpentDisplay = document.getElementById('total-spent').querySelector('span');
+const totalSpentDisplay = document.getElementById('total-spent') ? document.getElementById('total-spent').querySelector('span') : null;
 const transDateInput = document.getElementById('trans-date');
 
-// Sett dagens dato som standard i skjemafeltet
-transDateInput.valueAsDate = new Date();
+// Sett dagens dato som standard KUN hvis feltet finnes
+if (transDateInput) {
+  transDateInput.valueAsDate = new Date();
+}
 
 let currentUser = null;
 
 // --- FANE-NAVIGASJON (INNLOKKING / REGISTRERING) ---
-tabLogin.addEventListener('click', () => {
-  tabLogin.classList.add('active');
-  tabSignup.classList.remove('active');
-  loginForm.classList.remove('hidden');
-  signupForm.classList.add('hidden');
-});
+if (tabLogin && tabSignup) {
+  tabLogin.addEventListener('click', () => {
+    tabLogin.classList.add('active');
+    tabSignup.classList.remove('active');
+    loginForm.classList.remove('hidden');
+    signupForm.classList.add('hidden');
+  });
 
-tabSignup.addEventListener('click', () => {
-  tabSignup.classList.add('active');
-  tabLogin.classList.remove('active');
-  signupForm.classList.remove('hidden');
-  loginForm.classList.add('hidden');
-});
+  tabSignup.addEventListener('click', () => {
+    tabSignup.classList.add('active');
+    tabLogin.classList.remove('active');
+    signupForm.classList.remove('hidden');
+    loginForm.classList.add('hidden');
+  });
+}
 
 // --- AUTENTISERING ---
 
 // Registrer bruker
-signupForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('signup-email').value;
-  const password = document.getElementById('signup-password').value;
-  const firstName = document.getElementById('signup-firstname').value;
-  const lastName = document.getElementById('signup-lastname').value;
-  const username = document.getElementById('signup-username').value;
+if (signupForm) {
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const firstName = document.getElementById('signup-firstname').value;
+    const lastName = document.getElementById('signup-lastname').value;
+    const username = document.getElementById('signup-username').value;
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        username: username
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          username: username
+        }
       }
+    });
+
+    if (error) {
+      alert('Feil ved registrering: ' + error.message);
+    } else {
+      alert('Bruker opprettet! Sjekk e-post for bekreftelseslenke eller prøv å logge inn.');
     }
   });
-
-  if (error) {
-    alert('Feil ved registrering: ' + error.message);
-  } else {
-    alert('Bruker opprettet! Sjekk e-post for bekreftelse eller prøv å logge inn.');
-  }
-});
+}
 
 // Logg inn
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
+if (loginForm) {
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      alert('Feil ved innlogging: ' + error.message);
+    } else {
+      checkUserSession();
+    }
   });
-
-  if (error) {
-    alert('Feil ved innlogging: ' + error.message);
-  } else {
-    checkUserSession();
-  }
-});
+}
 
 // Logg ut
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
-  checkUserSession();
-});
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    checkUserSession();
+  });
+}
 
 // --- SJEKK INNLOGGINGSTILSTAND ---
 async function checkUserSession() {
@@ -100,58 +111,62 @@ async function checkUserSession() {
   
   if (session) {
     currentUser = session.user;
-    authSection.classList.add('hidden');
-    appSection.classList.remove('hidden');
-    userInfo.classList.remove('hidden');
+    if (authSection) authSection.classList.add('hidden');
+    if (appSection) appSection.classList.remove('hidden');
+    if (userInfo) userInfo.classList.remove('hidden');
     
-    // Vis brukernavn/navn i toppen
-    const name = currentUser.user_metadata.first_name || currentUser.email;
-    userNameDisplay.textContent = `Hei, ${name}`;
+    // Sikker uthenting av navn uten krasj
+    const name = currentUser.user_metadata?.first_name || currentUser.email;
+    if (userNameDisplay) userNameDisplay.textContent = `Hei, ${name}`;
 
     // Last inn transaksjoner
     loadTransactions();
   } else {
     currentUser = null;
-    authSection.classList.remove('hidden');
-    appSection.classList.add('hidden');
-    userInfo.classList.add('hidden');
+    if (authSection) authSection.classList.remove('hidden');
+    if (appSection) appSection.classList.add('hidden');
+    if (userInfo) userInfo.classList.add('hidden');
   }
 }
 
 // --- TRANSAKSJONER ---
 
 // Opprett ny transaksjon
-transactionForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+if (transactionForm) {
+  transactionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  const store = document.getElementById('trans-store').value;
-  const amount = parseFloat(document.getElementById('trans-amount').value);
-  const description = document.getElementById('trans-desc').value;
-  const purchaseDate = document.getElementById('trans-date').value;
+    const store = document.getElementById('trans-store').value;
+    const amount = parseFloat(document.getElementById('trans-amount').value);
+    const description = document.getElementById('trans-desc').value;
+    const purchaseDate = document.getElementById('trans-date').value;
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert([
-      {
-        user_id: currentUser.id,
-        store_name: store,
-        amount: amount,
-        description: description,
-        purchase_date: purchaseDate
-      }
-    ]);
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([
+        {
+          user_id: currentUser.id,
+          store_name: store,
+          amount: amount,
+          description: description,
+          purchase_date: purchaseDate
+        }
+      ]);
 
-  if (error) {
-    alert('Feil ved lagring: ' + error.message);
-  } else {
-    transactionForm.reset();
-    transDateInput.valueAsDate = new Date(); // tilbakestill dato
-    loadTransactions(); // oppdater listen
-  }
-});
+    if (error) {
+      alert('Feil ved lagring: ' + error.message);
+    } else {
+      transactionForm.reset();
+      if (transDateInput) transDateInput.valueAsDate = new Date();
+      loadTransactions();
+    }
+  });
+}
 
 // Last inn og vis transaksjoner
 async function loadTransactions() {
+  if (!transactionsList) return;
+
   const { data, error } = await supabase
     .from('transactions')
     .select('*')
@@ -181,7 +196,9 @@ async function loadTransactions() {
     transactionsList.appendChild(li);
   });
 
-  totalSpentDisplay.textContent = total.toFixed(2);
+  if (totalSpentDisplay) {
+    totalSpentDisplay.textContent = total.toFixed(2);
+  }
 }
 
 // Kjør sjekk ved oppstart
