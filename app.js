@@ -218,14 +218,21 @@ async function loadTransactions() {
 
     const li = document.createElement('li');
     li.className = 'transaction-item';
-    li.innerHTML = `
-      <div>
-        <span class="trans-store">${trans.store_name}</span>
-        <span class="trans-desc">${trans.description || ''}</span>
-        <div class="trans-meta">${trans.purchase_date}</div>
-      </div>
-      <div class="trans-amount">${Number(trans.amount).toFixed(2)} kr</div>
-    `;
+    const details = document.createElement('div');
+    const store = document.createElement('span');
+    store.className = 'trans-store';
+    store.textContent = trans.store_name;
+    const description = document.createElement('span');
+    description.className = 'trans-desc';
+    description.textContent = trans.description || '';
+    const meta = document.createElement('div');
+    meta.className = 'trans-meta';
+    meta.textContent = trans.purchase_date;
+    details.append(store, description, meta);
+    const amount = document.createElement('div');
+    amount.className = 'trans-amount';
+    amount.textContent = `${Number(trans.amount).toFixed(2)} kr`;
+    li.append(details, amount);
     transactionsList.appendChild(li);
   });
 

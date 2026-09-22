@@ -153,3 +153,6 @@ input:focus {
 .trans-desc { font-size: 0.85rem; color: var(--muted); }
 .trans-meta { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
 .trans-amount { font-weight: 600; font-size: 1rem; }
+.message { padding: 10px 12px; border-radius: 6px; font-size: .85rem; margin-bottom: 16px; }
+.message.error { background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; }
+.message.success { background:#f0fdf4; border:1px solid #86efac; color:#166534; }

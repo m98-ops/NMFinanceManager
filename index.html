@@ -6,7 +6,7 @@
   <title>NM Finance</title>
   <link rel="stylesheet" href="style.css">
   <!-- Supabase CDN (Siste stabile versjon) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -97,6 +97,7 @@
 
       <section class="card">
         <h2>Månedens forbruk</h2>
+        <div id="app-message" class="message hidden" role="status"></div>
         <div id="total-spent" class="total-display">Totalt: <span>0</span> kr</div>
         <ul id="transactions-list" class="transaction-list"></ul>
       </section>
