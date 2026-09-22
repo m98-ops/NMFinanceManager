@@ -1,245 +1,245 @@
 const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.com';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
 
-// Initialiser Supabase-klienten
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+(() => {
+  'use strict';
 
-// DOM-elementer
-const authSection = document.getElementById('auth-section');
-const appSection = document.getElementById('app-section');
-const userInfo = document.getElementById('user-info');
-const userNameDisplay = document.getElementById('user-name');
-const authError = document.getElementById('auth-error');
+  const init = () => {
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) ?? null;
 
-const tabLogin = document.getElementById('tab-login');
-const tabSignup = document.getElementById('tab-signup');
-const loginForm = document.getElementById('login-form');
-const signupForm = document.getElementById('signup-form');
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const userInfo = document.getElementById('user-info');
+    const userNameDisplay = document.getElementById('user-name');
+    const authError = document.getElementById('auth-error');
+    const appMessage = document.getElementById('app-message');
+    const tabLogin = document.getElementById('tab-login');
+    const tabSignup = document.getElementById('tab-signup');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const transactionForm = document.getElementById('transaction-form');
+    const transactionsList = document.getElementById('transactions-list');
+    const totalSpent = document.querySelector('#total-spent span');
+    const transDateInput = document.getElementById('trans-date');
+    const logoutBtn = document.getElementById('logout-btn');
 
-const transactionForm = document.getElementById('transaction-form');
-const transactionsList = document.getElementById('transactions-list');
-const totalSpentDisplay = document.getElementById('total-spent') ? document.getElementById('total-spent').querySelector('span') : null;
-const transDateInput = document.getElementById('trans-date');
+    let currentUser = null;
 
-if (transDateInput) {
-  transDateInput.valueAsDate = new Date();
-}
-
-let currentUser = null;
-
-// Hjælpefunksjon for feilmeldinger
-function showError(msg) {
-  if (!authError) return;
-  authError.textContent = msg;
-  authError.classList.remove('hidden');
-}
-
-function clearError() {
-  if (!authError) return;
-  authError.textContent = '';
-  authError.classList.add('hidden');
-}
-
-// --- BYTTE FANE (LOGG INN / REGISTRER DEG) ---
-if (tabLogin && tabSignup) {
-  tabLogin.addEventListener('click', (e) => {
-    e.preventDefault();
-    clearError();
-    tabLogin.classList.add('active');
-    tabSignup.classList.remove('active');
-    loginForm.classList.remove('hidden');
-    signupForm.classList.add('hidden');
-  });
-
-  tabSignup.addEventListener('click', (e) => {
-    e.preventDefault();
-    clearError();
-    tabSignup.classList.add('active');
-    tabLogin.classList.remove('active');
-    signupForm.classList.remove('hidden');
-    loginForm.classList.add('hidden');
-  });
-}
-
-// --- AUTENTISERING ---
-
-// Registrering
-if (signupForm) {
-  signupForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearError();
-
-    if (!supabase) {
-      showError("Kunne ikke koble til Supabase.");
-      return;
-    }
-
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
-    const firstName = document.getElementById('signup-firstname').value;
-    const lastName = document.getElementById('signup-lastname').value;
-    const username = document.getElementById('signup-username').value;
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          username: username
-        }
+    const error = (message) => {
+      if (authError) {
+        authError.textContent = message;
+        authError.classList.remove('hidden');
       }
+    };
+
+    const clearError = () => {
+      if (authError) {
+        authError.textContent = '';
+        authError.classList.add('hidden');
+      }
+    };
+
+    const message = (text, type = 'info') => {
+      if (!appMessage) return;
+      appMessage.textContent = text;
+      appMessage.className = `message ${type}`;
+    };
+
+    const switchTab = (login) => {
+      clearError();
+      tabLogin?.classList.toggle('active', login);
+      tabSignup?.classList.toggle('active', !login);
+      loginForm?.classList.toggle('hidden', !login);
+      signupForm?.classList.toggle('hidden', login);
+    };
+
+    tabLogin?.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab(true);
     });
 
-    if (error) {
-      showError('Feil ved registrering: ' + error.message);
-    } else {
-      alert('Bruker opprettet! Sjekk din e-post hvis du må bekrefte kontoen, eller prøv å logge inn.');
-      tabLogin.click();
-    }
-  });
-}
-
-// Innlogging
-if (loginForm) {
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearError();
-
-    if (!supabase) {
-      showError("Kunne ikke koble til Supabase.");
-      return;
-    }
-
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    tabSignup?.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab(false);
     });
 
-    if (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        showError("Feil e-post eller passord. Brukeren finnes enten ikke eller passordet er feil.");
-      } else {
-        showError("Feil ved innlogging: " + error.message);
-      }
-    } else {
-      checkUserSession();
+    if (!supabase) {
+      error('Kunne ikke laste Supabase. Kontroller at Supabase CDN er tilgjengelig.');
     }
-  });
-}
 
-// Logg ut
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', async () => {
-    if (supabase) await supabase.auth.signOut();
-    checkUserSession();
-  });
-}
+    signupForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+      if (!supabase) return error('Supabase er ikke tilgjengelig.');
 
-// --- SJEKK ØKT ---
-async function checkUserSession() {
-  if (!supabase) return;
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const firstName = document.getElementById('signup-firstname').value.trim();
+      const lastName = document.getElementById('signup-lastname').value.trim();
+      const username = document.getElementById('signup-username').value.trim();
 
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (session) {
-    currentUser = session.user;
-    if (authSection) authSection.classList.add('hidden');
-    if (appSection) appSection.classList.remove('hidden');
-    if (userInfo) userInfo.classList.remove('hidden');
-    
-    const name = currentUser.user_metadata?.first_name || currentUser.email;
-    if (userNameDisplay) userNameDisplay.textContent = `Hei, ${name}`;
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { first_name: firstName, last_name: lastName, username } }
+      });
 
-    loadTransactions();
-  } else {
-    currentUser = null;
-    if (authSection) authSection.classList.remove('hidden');
-    if (appSection) appSection.classList.add('hidden');
-    if (userInfo) userInfo.classList.add('hidden');
-  }
-}
+      if (signUpError) {
+        error(`Feil ved registrering: ${signUpError.message}`);
+        return;
+      }
 
-// --- TRANSAKSJONER ---
-if (transactionForm) {
-  transactionForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+      alert('Bruker opprettet. Sjekk e-posten dersom kontoen krever bekreftelse.');
+      signupForm.reset();
+      switchTab(true);
+    });
 
-    const store = document.getElementById('trans-store').value;
-    const amount = parseFloat(document.getElementById('trans-amount').value);
-    const description = document.getElementById('trans-desc').value;
-    const purchaseDate = document.getElementById('trans-date').value;
+    loginForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+      if (!supabase) return error('Supabase er ikke tilgjengelig.');
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert([
-        {
-          user_id: currentUser.id,
-          store_name: store,
-          amount: amount,
-          description: description,
-          purchase_date: purchaseDate
-        }
-      ]);
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      alert('Feil ved lagring: ' + error.message);
-    } else {
+      if (loginError) {
+        error(loginError.message.includes('Invalid login credentials')
+          ? 'Feil e-post eller passord.'
+          : `Feil ved innlogging: ${loginError.message}`);
+        return;
+      }
+      await checkSession();
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+      if (!supabase) return;
+      const { error: logoutError } = await supabase.auth.signOut();
+      if (logoutError) return message(`Kunne ikke logge ut: ${logoutError.message}`, 'error');
+      currentUser = null;
+      showLoggedOut();
+    });
+
+    transactionForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!supabase || !currentUser) return message('Du må være innlogget.', 'error');
+
+      const store = document.getElementById('trans-store').value.trim();
+      const amount = Number.parseFloat(document.getElementById('trans-amount').value);
+      const description = document.getElementById('trans-desc').value.trim() || null;
+      const purchaseDate = transDateInput.value;
+
+      if (!store || !Number.isFinite(amount) || amount <= 0 || !purchaseDate) {
+        return message('Kontroller butikk, beløp og dato.', 'error');
+      }
+
+      const { error: insertError } = await supabase.from('transactions').insert({
+        user_id: currentUser.id,
+        store_name: store,
+        amount,
+        description,
+        purchase_date: purchaseDate
+      });
+
+      if (insertError) return message(`Feil ved lagring: ${insertError.message}`, 'error');
+
       transactionForm.reset();
-      if (transDateInput) transDateInput.valueAsDate = new Date();
+      transDateInput.valueAsDate = new Date();
+      message('Kjøpet er lagret.', 'success');
+      await loadTransactions();
+    });
+
+    function showLoggedIn() {
+      authSection?.classList.add('hidden');
+      appSection?.classList.remove('hidden');
+      userInfo?.classList.remove('hidden');
+      userNameDisplay.textContent = `Hei, ${currentUser.user_metadata?.first_name || currentUser.email}`;
       loadTransactions();
     }
-  });
-}
 
-async function loadTransactions() {
-  if (!transactionsList || !supabase) return;
+    function showLoggedOut() {
+      authSection?.classList.remove('hidden');
+      appSection?.classList.add('hidden');
+      userInfo?.classList.add('hidden');
+    }
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .order('purchase_date', { ascending: false });
+    async function checkSession() {
+      if (!supabase) return;
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) return error(`Kunne ikke hente session: ${sessionError.message}`);
+      currentUser = data.session?.user ?? null;
+      currentUser ? showLoggedIn() : showLoggedOut();
+    }
 
-  if (error) {
-    console.error('Feil ved henting av transaksjoner:', error);
-    return;
+    async function loadTransactions() {
+      if (!supabase || !currentUser || !transactionsList) return;
+
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+      const { data, error: loadError } = await supabase
+        .from('transactions')
+        .select('id, store_name, amount, description, purchase_date, created_at')
+        .eq('user_id', currentUser.id)
+        .gte('purchase_date', isoDate(start))
+        .lt('purchase_date', isoDate(end))
+        .order('purchase_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (loadError) return message(`Kunne ikke hente transaksjoner: ${loadError.message}`, 'error');
+
+      transactionsList.replaceChildren();
+      let total = 0;
+
+      if (!data?.length) {
+        const empty = document.createElement('li');
+        empty.className = 'empty-item';
+        empty.textContent = 'Ingen kjøp registrert denne måneden.';
+        transactionsList.appendChild(empty);
+      }
+
+      for (const trans of data ?? []) {
+        total += Number(trans.amount) || 0;
+        const li = document.createElement('li');
+        li.className = 'transaction-item';
+
+        const details = document.createElement('div');
+        const store = document.createElement('span');
+        store.className = 'trans-store';
+        store.textContent = trans.store_name;
+        const desc = document.createElement('span');
+        desc.className = 'trans-desc';
+        desc.textContent = trans.description || '';
+        const meta = document.createElement('div');
+        meta.className = 'trans-meta';
+        meta.textContent = trans.purchase_date;
+        details.append(store, desc, meta);
+
+        const amount = document.createElement('div');
+        amount.className = 'trans-amount';
+        amount.textContent = `${(Number(trans.amount) || 0).toFixed(2)} kr`;
+        li.append(details, amount);
+        transactionsList.appendChild(li);
+      }
+
+      if (totalSpent) totalSpent.textContent = total.toFixed(2);
+    }
+
+    if (transDateInput) transDateInput.valueAsDate = new Date();
+
+    supabase?.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user ?? null;
+      currentUser ? showLoggedIn() : showLoggedOut();
+    });
+
+    checkSession();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
   }
-
-  transactionsList.innerHTML = '';
-  let total = 0;
-
-  data.forEach(trans => {
-    total += Number(trans.amount);
-
-    const li = document.createElement('li');
-    li.className = 'transaction-item';
-    const details = document.createElement('div');
-    const store = document.createElement('span');
-    store.className = 'trans-store';
-    store.textContent = trans.store_name;
-    const description = document.createElement('span');
-    description.className = 'trans-desc';
-    description.textContent = trans.description || '';
-    const meta = document.createElement('div');
-    meta.className = 'trans-meta';
-    meta.textContent = trans.purchase_date;
-    details.append(store, description, meta);
-    const amount = document.createElement('div');
-    amount.className = 'trans-amount';
-    amount.textContent = `${Number(trans.amount).toFixed(2)} kr`;
-    li.append(details, amount);
-    transactionsList.appendChild(li);
-  });
-
-  if (totalSpentDisplay) {
-    totalSpentDisplay.textContent = total.toFixed(2);
-  }
-}
-
-// Kjør sjekk ved oppstart
-checkUserSession();
+})();
