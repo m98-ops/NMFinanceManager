@@ -2,108 +2,29 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NM Finance</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Supabase CDN (Siste stabile versjon) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
-
-  <div class="container">
-    <header>
-      <h1>NM Finance</h1>
-      <div id="user-info" class="hidden">
-        <span id="user-name"></span>
-        <button id="logout-btn" class="btn-secondary">Logg ut</button>
-      </div>
-    </header>
-
-    <!-- AUTENTISERINGSKORT -->
-    <main id="auth-section">
-      <div class="card">
-        <div class="tabs">
-          <button id="tab-login" type="button" class="tab-btn active">Logg inn</button>
-          <button id="tab-signup" type="button" class="tab-btn">Registrer deg</button>
-        </div>
-
-        <!-- Boks for feilmeldinger -->
-        <div id="auth-error" class="error-box hidden"></div>
-
-        <!-- Innloggingsskjema -->
-        <form id="login-form">
-          <div class="form-group">
-            <label for="login-email">E-post</label>
-            <input type="email" id="login-email" required placeholder="din@epost.no">
-          </div>
-          <div class="form-group">
-            <label for="login-password">Passord</label>
-            <input type="password" id="login-password" required placeholder="••••••••">
-          </div>
-          <button type="submit" id="login-submit-btn" class="btn-primary">Logg inn</button>
-        </form>
-
-        <!-- Registreringsskjema -->
-        <form id="signup-form" class="hidden">
-          <div class="form-group">
-            <label for="signup-email">E-post</label>
-            <input type="email" id="signup-email" required placeholder="din@epost.no">
-          </div>
-          <div class="form-group">
-            <label for="signup-password">Passord</label>
-            <input type="password" id="signup-password" required placeholder="••••••••">
-          </div>
-          <div class="form-group">
-            <label for="signup-firstname">Fornavn</label>
-            <input type="text" id="signup-firstname" required placeholder="Ola">
-          </div>
-          <div class="form-group">
-            <label for="signup-lastname">Etternavn</label>
-            <input type="text" id="signup-lastname" required placeholder="Nordmann">
-          </div>
-          <div class="form-group">
-            <label for="signup-username">Brukernavn</label>
-            <input type="text" id="signup-username" required placeholder="olanordmann">
-          </div>
-          <button type="submit" id="signup-submit-btn" class="btn-primary">Opprett konto</button>
-        </form>
-      </div>
-    </main>
-
-    <!-- HOVEDSIDE (Vises etter innlogging) -->
-    <main id="app-section" class="hidden">
-      <section class="card">
-        <h2>Registrer kjøp</h2>
-        <form id="transaction-form">
-          <div class="form-group">
-            <label for="trans-store">Butikk</label>
-            <input type="text" id="trans-store" required placeholder="f.eks. Rema 1000">
-          </div>
-          <div class="form-group">
-            <label for="trans-amount">Beløp (kr)</label>
-            <input type="number" step="0.01" id="trans-amount" required placeholder="0.00">
-          </div>
-          <div class="form-group">
-            <label for="trans-desc">Beskrivelse / Produkter</label>
-            <input type="text" id="trans-desc" placeholder="f.eks. Melk, brød og middag">
-          </div>
-          <div class="form-group">
-            <label for="trans-date">Dato</label>
-            <input type="date" id="trans-date" required>
-          </div>
-          <button type="submit" class="btn-primary">Legg til kjøp</button>
-        </form>
-      </section>
-
-      <section class="card">
-        <h2>Månedens forbruk</h2>
-        <div id="app-message" class="message hidden" role="status"></div>
-        <div id="total-spent" class="total-display">Totalt: <span>0</span> kr</div>
-        <ul id="transactions-list" class="transaction-list"></ul>
-      </section>
-    </main>
-  </div>
-
-  <script src="app.js"></script>
+<div class="container">
+  <header><h1>NM Finance</h1><div id="user-info" class="hidden"><span id="user-name"></span><button id="logout-btn" class="btn-secondary">Logg ut</button></div></header>
+  <main id="auth-section"><section class="card auth-card">
+    <div class="tabs"><button id="tab-login" class="tab-btn active" type="button">Logg inn</button><button id="tab-signup" class="tab-btn" type="button">Registrer deg</button></div>
+    <p id="auth-error" class="message error hidden" role="alert"></p>
+    <form id="login-form"><label>E-post<input id="login-email" type="email" autocomplete="email" required></label><label>Passord<input id="login-password" type="password" autocomplete="current-password" required></label><button class="btn-primary">Logg inn</button></form>
+    <form id="signup-form" class="hidden"><label>E-post<input id="signup-email" type="email" autocomplete="email" required></label><label>Passord<input id="signup-password" type="password" autocomplete="new-password" required minlength="6"></label><label>Fornavn<input id="signup-firstname" required></label><label>Etternavn<input id="signup-lastname" required></label><label>Brukernavn<input id="signup-username" required></label><button class="btn-primary">Opprett konto</button></form>
+  </section></main>
+  <main id="app-section" class="hidden">
+    <p id="app-message" class="message hidden" role="status"></p>
+    <section class="card"><h2>Oversikt</h2><label>Måned<input id="dashboard-month" type="month"></label><div class="summary"><div><small>Mine betalinger</small><strong id="personal-total">0 kr</strong></div><div><small>Felles betalinger</small><strong id="shared-total">0 kr</strong></div></div><h3>Forbruk per kategori</h3><ul id="category-totals" class="rows"></ul></section>
+    <section class="card"><h2>Budsjetter og lister</h2><p class="hint">Velg første periode. Den samme perioden gjentas hver måned; tidligere perioder kan åpnes.</p><form id="budget-form" class="grid-form"><label>Navn<input id="budget-name" required maxlength="80" placeholder="Mat"></label><label>Beløpsgrense per periode (kr)<input id="budget-limit" type="number" min="0.01" step="0.01" required></label><label>Første startdato<input id="budget-start" type="date" required></label><label>Første sluttdato<input id="budget-end" type="date" required></label><label>Type<select id="budget-type"><option value="personal">Personlig</option><option value="shared">Felles</option></select></label><button class="btn-primary">Opprett budsjett</button></form><ul id="budget-list" class="rows"></ul></section>
+    <section class="card"><h2>Valgt budsjett</h2><label>Budsjett<select id="selected-budget"><option value="">Velg budsjett</option></select></label><div id="budget-detail" class="hidden"><div class="period-controls"><button id="previous-period" type="button" class="btn-secondary">Forrige</button><strong id="period-label"></strong><button id="next-period" type="button" class="btn-secondary">Neste</button></div><p id="budget-balance" class="total-display"></p><div id="share-section" class="hidden"><h3>Del budsjett</h3><p class="hint">Bare registrerte brukere kan legges til. Eier kan dele via e-post eller brukernavn.</p><form id="share-form" class="inline-form"><label>E-post eller brukernavn<input id="share-identifier" required></label><button class="btn-primary">Legg til</button></form><p id="member-list" class="hint"></p></div></div></section>
+    <section class="card"><h2>Registrer betaling</h2><form id="transaction-form"><label>Budsjett/liste<select id="trans-budget"><option value="">Uten budsjett</option></select></label><label>Butikk / mottaker<input id="trans-store" required maxlength="120"></label><label>Beløp (kr)<input id="trans-amount" type="number" step="0.01" min="0.01" required></label><label>Kategori<select id="trans-category"></select></label><label>Betalingstype<select id="trans-scope"><option value="personal">Personlig betaling</option><option value="shared">Felles betaling</option></select></label><label>Beskrivelse<input id="trans-desc" maxlength="500"></label><label>Dato<input id="trans-date" type="date" required></label><button class="btn-primary">Lagre betaling</button></form></section>
+    <section class="card"><h2>Betalinger i valgt måned eller periode</h2><ul id="transactions-list" class="rows"></ul></section>
+  </main>
+</div>
+<script src="app.js"></script>
 </body>
 </html>
