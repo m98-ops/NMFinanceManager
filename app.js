@@ -1,16 +1,27 @@
 const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
 
-// Helper for scroll til seksjon (for mobil meny)
-window.scrollToSection = (id) => {
-  const el = document.getElementById(id);
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth' });
-    // Lukk meny på mobil etter klikk
-    if (window.innerWidth < 900) {
-      document.querySelector('.sidebar').classList.remove('open');
-      document.querySelector('.overlay').classList.remove('active');
+// Global funksjon for å bytte view (kalles fra HTML onclick)
+window.switchView = (viewName) => {
+  // Oppdater aktiv class i menyene
+  const allNavItems = document.querySelectorAll('.nav-item');
+  allNavItems.forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') === `switchView('${viewName}')`) {
+      item.classList.add('active');
     }
+  });
+
+  // Vis riktig innhold
+  const contents = document.querySelectorAll('.view-content');
+  contents.forEach(c => c.classList.remove('active'));
+  
+  const target = document.getElementById(`view-${viewName}`);
+  if (target) target.classList.add('active');
+  
+  // Scroll to top on mobile
+  if (window.innerWidth < 768) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 };
 
@@ -69,21 +80,20 @@ window.scrollToSection = (id) => {
   function showAuth() {
     state.revision++; state.user = null; state.budgets = []; state.selected = '';
     $('auth-section').classList.remove('hidden'); $('app-section').classList.add('hidden'); 
-    $('user-info').classList.add('hidden');
-    $('user-info-mobile').classList.add('hidden');
     $('transactions-list').replaceChildren(); $('budget-list').replaceChildren();
+    // Reset views
+    switchView('dashboard');
   }
   async function showApp(user) {
     state.user = user;
     $('auth-section').classList.add('hidden'); $('app-section').classList.remove('hidden'); 
-    $('user-info').classList.remove('hidden');
-    $('user-info-mobile').classList.remove('hidden');
     
     const name = user.user_metadata?.first_name || user.email;
-    $('user-name').textContent = name;
     $('user-name-sidebar').textContent = name;
     
     await loadBudgets();
+    // Default to dashboard
+    switchView('dashboard');
   }
   async function fetchAll(table, columns, filters) {
     const rows = [];
@@ -115,8 +125,11 @@ window.scrollToSection = (id) => {
     for (const b of state.budgets) {
       const li = document.createElement('li'); const content = document.createElement('div');
       const button = document.createElement('button'); button.type = 'button'; button.className = 'budget-button'; button.textContent = b.name;
-      button.addEventListener('click', () => selectBudget(b.id));
-      const meta = document.createElement('small'); meta.className = 'row-meta'; meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${b.first_start} – ${b.first_end}, gjentar månedlig`;
+      button.addEventListener('click', () => {
+        selectBudget(b.id);
+        switchView('history'); // Auto jump to history when selecting a budget
+      });
+      const meta = document.createElement('small'); meta.className = 'row-meta'; meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${b.first_start} – ${b.first_end}`;
       content.append(button, meta); const amount = document.createElement('strong'); amount.className = 'amount'; amount.textContent = money(Number(b.amount_limit));
       li.append(content, amount); list.append(li);
     }
@@ -206,22 +219,6 @@ window.scrollToSection = (id) => {
     $('budget-end').value = dateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
     
     for (const category of categories) $('trans-category').add(new Option(category, category));
-    
-    // Mobile Menu Toggle Logic
-    const menuToggle = $('menu-toggle');
-    const overlay = $('overlay');
-    if(menuToggle) {
-      menuToggle.onclick = () => {
-        $('sidebar').classList.toggle('open');
-        overlay.classList.toggle('active');
-      };
-    }
-    if(overlay) {
-      overlay.onclick = () => {
-        $('sidebar').classList.remove('open');
-        overlay.classList.remove('active');
-      };
-    }
 
     $('tab-login').onclick = () => { $('login-form').classList.remove('hidden'); $('signup-form').classList.add('hidden'); $('tab-login').classList.add('active'); $('tab-signup').classList.remove('active'); clearStatus('auth-error'); };
     $('tab-signup').onclick = () => { $('signup-form').classList.remove('hidden'); $('login-form').classList.add('hidden'); $('tab-signup').classList.add('active'); $('tab-login').classList.remove('active'); clearStatus('auth-error'); };
@@ -240,11 +237,8 @@ window.scrollToSection = (id) => {
       if (error) status(`Innlogging feilet: ${error.message}`, 'error', 'auth-error');
     };
     
-    // Logout handlers for both buttons
     const handleLogout = async () => { const { error } = await db.auth.signOut(); if (error) status(error.message); };
-    $('logout-btn').onclick = handleLogout;
-    const logoutSidebar = $('logout-btn-sidebar');
-    if(logoutSidebar) logoutSidebar.onclick = handleLogout;
+    $('logout-btn-sidebar').onclick = handleLogout;
 
     $('budget-form').onsubmit = async event => {
       event.preventDefault(); clearStatus();
@@ -255,6 +249,7 @@ window.scrollToSection = (id) => {
       if (error) return status(`Kunne ikke opprette budsjett: ${error.message}`);
       $('budget-form').reset(); $('budget-start').value = today(); $('budget-end').value = dateString(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0));
       await loadBudgets(); selectBudget(data.id); status('Budsjettet er opprettet.', 'success');
+      switchView('budgets');
     };
     $('selected-budget').onchange = event => selectBudget(event.target.value);
     $('trans-budget').onchange = updateScope;
@@ -279,6 +274,7 @@ window.scrollToSection = (id) => {
       if (error) return status(`Kunne ikke lagre betaling: ${error.message}`);
       $('transaction-form').reset(); $('trans-date').value = today(); $('trans-budget').value = b?.id || ''; updateScope();
       status('Betalingen er lagret.', 'success'); await refresh();
+      switchView('history');
     };
     db.auth.onAuthStateChange((event, session) => {
       const id = session?.user?.id;
