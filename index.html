@@ -4,37 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>NM Finance</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- Font for ikoner (optional, using simple unicode if not loaded) -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
 <div class="app-container">
   
-  <!-- SIDEBAR (Desktop Only) -->
+  <!-- SIDEBAR (Desktop) -->
   <aside class="sidebar desktop-only">
-    <div class="brand">
-      <h1>NM Finance</h1>
-    </div>
+    <div class="brand"><h1>NM Finance</h1></div>
     <nav class="nav-menu">
-      <a href="#" class="nav-item active" onclick="switchView('dashboard')">
-        <span class="material-icons-outlined">dashboard</span>
-        <span>Dashboard</span>
-      </a>
-      <a href="#" class="nav-item" onclick="switchView('budgets')">
-        <span class="material-icons-outlined">account_balance_wallet</span>
-        <span>Budsjetter</span>
-      </a>
-      <a href="#" class="nav-item" onclick="switchView('register')">
-        <span class="material-icons-outlined">add_circle</span>
-        <span>Registrer</span>
-      </a>
-      <a href="#" class="nav-item" onclick="switchView('history')">
-        <span class="material-icons-outlined">history</span>
-        <span>Historikk</span>
-      </a>
+      <a href="#" class="nav-item active" onclick="switchView('dashboard')"><span class="material-icons-outlined">dashboard</span><span>Dashboard</span></a>
+      <a href="#" class="nav-item" onclick="switchView('budgets')"><span class="material-icons-outlined">account_balance_wallet</span><span>Budsjetter</span></a>
+      <a href="#" class="nav-item" onclick="switchView('register')"><span class="material-icons-outlined">add_circle</span><span>Registrer</span></a>
+      <a href="#" class="nav-item" onclick="switchView('history')"><span class="material-icons-outlined">history</span><span>Historikk</span></a>
     </nav>
     <div class="user-profile">
       <div class="avatar-circle">👤</div>
@@ -50,64 +35,37 @@
     
     <!-- Mobile Header -->
     <header class="mobile-header">
-      <div class="header-left">
-        <h1>NM Finance</h1>
-      </div>
-      <div class="header-right">
-        <div class="avatar-small">👤</div>
-      </div>
+      <div class="header-left"><h1>NM Finance</h1></div>
+      <div class="header-right"><div class="avatar-small">👤</div></div>
     </header>
 
     <!-- AUTH SECTION -->
     <section id="auth-section" class="view-section">
-      <div class="auth-card">
+      <div class="card auth-card">
         <div class="auth-tabs">
           <button id="tab-login" class="tab-btn active">Logg inn</button>
           <button id="tab-signup" class="tab-btn">Registrer deg</button>
         </div>
         <p id="auth-error" class="message error hidden" role="alert"></p>
-        
         <form id="login-form">
-          <div class="input-group">
-            <label>E-post</label>
-            <input id="login-email" type="email" autocomplete="email" required placeholder="din@email.no">
-          </div>
-          <div class="input-group">
-            <label>Passord</label>
-            <input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••">
-          </div>
-          <button type="submit" class="btn-primary btn-block">Logg inn</button>
+          <div class="input-group"><label>E-post</label><input id="login-email" type="email" autocomplete="email" required placeholder="din@email.no"></div>
+          <div class="input-group"><label>Passord</label><input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••"></div>
+          <button type="submit" class="btn-primary">Logg inn</button>
         </form>
-
         <form id="signup-form" class="hidden">
-          <div class="input-group">
-            <label>E-post</label>
-            <input id="signup-email" type="email" autocomplete="email" required placeholder="din@email.no">
-          </div>
-          <div class="input-group">
-            <label>Passord</label>
-            <input id="signup-password" type="password" autocomplete="new-password" required minlength="6" placeholder="Min 6 tegn">
-          </div>
+          <div class="input-group"><label>E-post</label><input id="signup-email" type="email" autocomplete="email" required placeholder="din@email.no"></div>
+          <div class="input-group"><label>Passord</label><input id="signup-password" type="password" autocomplete="new-password" required minlength="6" placeholder="Min 6 tegn"></div>
           <div class="grid-2">
-            <div class="input-group">
-              <label>Fornavn</label>
-              <input id="signup-firstname" required placeholder="Magnus">
-            </div>
-            <div class="input-group">
-              <label>Etternavn</label>
-              <input id="signup-lastname" required placeholder="Andreas">
-            </div>
+            <div class="input-group"><label>Fornavn</label><input id="signup-firstname" required placeholder="Magnus"></div>
+            <div class="input-group"><label>Etternavn</label><input id="signup-lastname" required placeholder="Andreas"></div>
           </div>
-          <div class="input-group">
-            <label>Brukernavn</label>
-            <input id="signup-username" required placeholder="magnusa">
-          </div>
-          <button type="submit" class="btn-primary btn-block">Opprett konto</button>
+          <div class="input-group"><label>Brukernavn</label><input id="signup-username" required placeholder="magnusa"></div>
+          <button type="submit" class="btn-primary">Opprett konto</button>
         </form>
       </div>
     </section>
 
-    <!-- APP SECTION (Hidden until login) -->
+    <!-- APP SECTION -->
     <section id="app-section" class="view-section hidden">
       <p id="app-message" class="message hidden" role="status"></p>
 
@@ -116,20 +74,11 @@
         <div class="card summary-card">
           <div class="summary-header">
             <h2>Oversikt</h2>
-            <div class="month-picker-wrapper">
-              <label>Måned</label>
-              <input id="dashboard-month" type="month" class="mini-input">
-            </div>
+            <div class="month-picker-wrapper"><label>Måned</label><input id="dashboard-month" type="month" class="mini-input"></div>
           </div>
           <div class="stats-grid">
-            <div class="stat-card primary">
-              <span class="stat-label">Mine betalinger</span>
-              <span id="personal-total" class="stat-value">0 kr</span>
-            </div>
-            <div class="stat-card secondary">
-              <span class="stat-label">Felles betalinger</span>
-              <span id="shared-total" class="stat-value">0 kr</span>
-            </div>
+            <div class="stat-card primary"><span class="stat-label">Mine betalinger</span><span id="personal-total" class="stat-value">0 kr</span></div>
+            <div class="stat-card secondary"><span class="stat-label">Felles betalinger</span><span id="shared-total" class="stat-value">0 kr</span></div>
           </div>
           <h3>Forbruk per kategori</h3>
           <ul id="category-totals" class="rows"></ul>
@@ -142,35 +91,16 @@
           <h2>Opprett nytt budsjett</h2>
           <form id="budget-form" class="modern-form">
             <div class="grid-2">
-              <div class="input-group">
-                <label>Navn</label>
-                <input id="budget-name" required maxlength="80" placeholder="F.eks. Mat">
-              </div>
-              <div class="input-group">
-                <label>Beløpsgrense (kr)</label>
-                <input id="budget-limit" type="number" min="0.01" step="0.01" required placeholder="5000">
-              </div>
+              <div class="input-group"><label>Navn</label><input id="budget-name" required maxlength="80" placeholder="F.eks. Mat"></div>
+              <div class="input-group"><label>Beløpsgrense (kr)</label><input id="budget-limit" type="number" min="0.01" step="0.01" required placeholder="5000"></div>
             </div>
             <div class="grid-2">
-              <div class="input-group">
-                <label>Første startdato</label>
-                <input id="budget-start" type="date" required>
-              </div>
-              <div class="input-group">
-                <label>Første sluttdato</label>
-                <input id="budget-end" type="date" required>
-              </div>
+              <div class="input-group"><label>Første startdato</label><input id="budget-start" type="date" required></div>
+              <div class="input-group"><label>Første sluttdato</label><input id="budget-end" type="date" required></div>
             </div>
-            <div class="input-group">
-              <label>Type</label>
-              <select id="budget-type">
-                <option value="personal">Personlig</option>
-                <option value="shared">Felles</option>
-              </select>
-            </div>
-            <button type="submit" class="btn-primary btn-block">Opprett budsjett</button>
+            <div class="input-group"><label>Type</label><select id="budget-type"><option value="personal">Personlig</option><option value="shared">Felles</option></select></div>
+            <button type="submit" class="btn-primary">Opprett budsjett</button>
           </form>
-          
           <h3 style="margin-top: 30px;">Dine budsjetter</h3>
           <ul id="budget-list" class="rows"></ul>
         </div>
@@ -181,44 +111,18 @@
         <div class="card">
           <h2>Registrer betaling</h2>
           <form id="transaction-form" class="modern-form">
-            <div class="input-group">
-              <label>Budsjett / Liste</label>
-              <select id="trans-budget">
-                <option value="">Uten budsjett</option>
-              </select>
+            <div class="input-group"><label>Budsjett / Liste</label><select id="trans-budget"><option value="">Uten budsjett</option></select></div>
+            <div class="grid-2">
+              <div class="input-group"><label>Butikk / Mottaker</label><input id="trans-store" required maxlength="120" placeholder="Rema 1000"></div>
+              <div class="input-group"><label>Beløp (kr)</label><input id="trans-amount" type="number" step="0.01" min="0.01" required placeholder="150.00"></div>
             </div>
             <div class="grid-2">
-              <div class="input-group">
-                <label>Butikk / Mottaker</label>
-                <input id="trans-store" required maxlength="120" placeholder="Rema 1000">
-              </div>
-              <div class="input-group">
-                <label>Beløp (kr)</label>
-                <input id="trans-amount" type="number" step="0.01" min="0.01" required placeholder="150.00">
-              </div>
+              <div class="input-group"><label>Kategori</label><select id="trans-category"></select></div>
+              <div class="input-group"><label>Dato</label><input id="trans-date" type="date" required></div>
             </div>
-            <div class="grid-2">
-              <div class="input-group">
-                <label>Kategori</label>
-                <select id="trans-category"></select>
-              </div>
-              <div class="input-group">
-                <label>Dato</label>
-                <input id="trans-date" type="date" required>
-              </div>
-            </div>
-            <div class="input-group">
-              <label>Betalingstype</label>
-              <select id="trans-scope">
-                <option value="personal">Personlig</option>
-                <option value="shared">Felles</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Beskrivelse (valgfritt)</label>
-              <input id="trans-desc" maxlength="500" placeholder="Notat...">
-            </div>
-            <button type="submit" class="btn-primary btn-block">Lagre betaling</button>
+            <div class="input-group"><label>Betalingstype</label><select id="trans-scope"><option value="personal">Personlig</option><option value="shared">Felles</option></select></div>
+            <div class="input-group"><label>Beskrivelse (valgfritt)</label><input id="trans-desc" maxlength="500" placeholder="Notat..."></div>
+            <button type="submit" class="btn-primary">Lagre betaling</button>
           </form>
         </div>
       </div>
@@ -229,11 +133,8 @@
           <div class="budget-selector-wrapper">
             <h2>Valgt budsjett</h2>
             <label>Budsjett</label>
-            <select id="selected-budget">
-              <option value="">Velg budsjett</option>
-            </select>
+            <select id="selected-budget"><option value="">Velg budsjett</option></select>
           </div>
-          
           <div id="budget-detail" class="hidden">
             <div class="period-controls">
               <button id="previous-period" type="button" class="btn-icon">←</button>
@@ -241,7 +142,6 @@
               <button id="next-period" type="button" class="btn-icon">→</button>
             </div>
             <p id="budget-balance" class="total-display"></p>
-            
             <div id="share-section" class="hidden">
               <h3>Del budsjett</h3>
               <p class="hint">Del med e-post eller brukernavn.</p>
@@ -252,7 +152,6 @@
               <p id="member-list" class="hint"></p>
             </div>
           </div>
-
           <h3 style="margin-top: 20px;">Betalinger</h3>
           <ul id="transactions-list" class="rows"></ul>
         </div>
@@ -261,24 +160,12 @@
     </section>
   </main>
 
-  <!-- BOTTOM NAVIGATION (Mobile Only) -->
+  <!-- BOTTOM NAV (Mobile) -->
   <nav class="bottom-nav mobile-only">
-    <a href="#" class="nav-item active" onclick="switchView('dashboard')">
-      <span class="material-icons-outlined">dashboard</span>
-      <span>Dashboard</span>
-    </a>
-    <a href="#" class="nav-item" onclick="switchView('budgets')">
-      <span class="material-icons-outlined">account_balance_wallet</span>
-      <span>Budsjetter</span>
-    </a>
-    <a href="#" class="nav-item" onclick="switchView('register')">
-      <span class="material-icons-outlined">add_circle</span>
-      <span>Registrer</span>
-    </a>
-    <a href="#" class="nav-item" onclick="switchView('history')">
-      <span class="material-icons-outlined">history</span>
-      <span>Historikk</span>
-    </a>
+    <a href="#" class="nav-item active" onclick="switchView('dashboard')"><span class="material-icons-outlined">dashboard</span><span>Dashboard</span></a>
+    <a href="#" class="nav-item" onclick="switchView('budgets')"><span class="material-icons-outlined">account_balance_wallet</span><span>Budsjetter</span></a>
+    <a href="#" class="nav-item" onclick="switchView('register')"><span class="material-icons-outlined">add_circle</span><span>Registrer</span></a>
+    <a href="#" class="nav-item" onclick="switchView('history')"><span class="material-icons-outlined">history</span><span>Historikk</span></a>
   </nav>
 
 </div>

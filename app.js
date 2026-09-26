@@ -1,9 +1,8 @@
 const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
 
-// Global funksjon for å bytte view (kalles fra HTML onclick)
+// Global funksjon for å bytte view
 window.switchView = (viewName) => {
-  // Oppdater aktiv class i menyene
   const allNavItems = document.querySelectorAll('.nav-item');
   allNavItems.forEach(item => {
     item.classList.remove('active');
@@ -12,14 +11,12 @@ window.switchView = (viewName) => {
     }
   });
 
-  // Vis riktig innhold
   const contents = document.querySelectorAll('.view-content');
   contents.forEach(c => c.classList.remove('active'));
   
   const target = document.getElementById(`view-${viewName}`);
   if (target) target.classList.add('active');
   
-  // Scroll to top on mobile
   if (window.innerWidth < 768) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -81,18 +78,14 @@ window.switchView = (viewName) => {
     state.revision++; state.user = null; state.budgets = []; state.selected = '';
     $('auth-section').classList.remove('hidden'); $('app-section').classList.add('hidden'); 
     $('transactions-list').replaceChildren(); $('budget-list').replaceChildren();
-    // Reset views
     switchView('dashboard');
   }
   async function showApp(user) {
     state.user = user;
     $('auth-section').classList.add('hidden'); $('app-section').classList.remove('hidden'); 
-    
     const name = user.user_metadata?.first_name || user.email;
     $('user-name-sidebar').textContent = name;
-    
     await loadBudgets();
-    // Default to dashboard
     switchView('dashboard');
   }
   async function fetchAll(table, columns, filters) {
@@ -127,7 +120,7 @@ window.switchView = (viewName) => {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'budget-button'; button.textContent = b.name;
       button.addEventListener('click', () => {
         selectBudget(b.id);
-        switchView('history'); // Auto jump to history when selecting a budget
+        switchView('history');
       });
       const meta = document.createElement('small'); meta.className = 'row-meta'; meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${b.first_start} – ${b.first_end}`;
       content.append(button, meta); const amount = document.createElement('strong'); amount.className = 'amount'; amount.textContent = money(Number(b.amount_limit));
