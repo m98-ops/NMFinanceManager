@@ -1,6 +1,19 @@
 const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
 
+// Helper for scroll til seksjon (for mobil meny)
+window.scrollToSection = (id) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' });
+    // Lukk meny på mobil etter klikk
+    if (window.innerWidth < 900) {
+      document.querySelector('.sidebar').classList.remove('open');
+      document.querySelector('.overlay').classList.remove('active');
+    }
+  }
+};
+
 (() => {
   'use strict';
   const db = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -28,7 +41,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     const el = $(target); if (!el) return;
     el.textContent = text; el.className = `message ${type}`;
   }
-  function clearStatus(target = 'app-message') { $(target).textContent = ''; $(target).className = 'message hidden'; }
+  function clearStatus(target = 'app-message') { 
+    const el = $(target); 
+    if(el) { el.textContent = ''; el.className = 'message hidden'; }
+  }
+  
   function setOptions() {
     const old = $('trans-budget').value;
     for (const id of ['selected-budget', 'trans-budget']) {
@@ -43,18 +60,29 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   function updateScope() {
     const b = getBudget($('trans-budget').value);
     const shared = b?.kind === 'shared';
-    $('trans-scope').querySelector('[value="shared"]').disabled = !shared;
-    if (!shared) $('trans-scope').value = 'personal';
+    const scopeSelect = $('trans-scope');
+    if(scopeSelect) {
+      scopeSelect.querySelector('[value="shared"]').disabled = !shared;
+      if (!shared) scopeSelect.value = 'personal';
+    }
   }
   function showAuth() {
     state.revision++; state.user = null; state.budgets = []; state.selected = '';
-    $('auth-section').classList.remove('hidden'); $('app-section').classList.add('hidden'); $('user-info').classList.add('hidden');
+    $('auth-section').classList.remove('hidden'); $('app-section').classList.add('hidden'); 
+    $('user-info').classList.add('hidden');
+    $('user-info-mobile').classList.add('hidden');
     $('transactions-list').replaceChildren(); $('budget-list').replaceChildren();
   }
   async function showApp(user) {
     state.user = user;
-    $('auth-section').classList.add('hidden'); $('app-section').classList.remove('hidden'); $('user-info').classList.remove('hidden');
-    $('user-name').textContent = `Hei, ${user.user_metadata?.first_name || user.email}`;
+    $('auth-section').classList.add('hidden'); $('app-section').classList.remove('hidden'); 
+    $('user-info').classList.remove('hidden');
+    $('user-info-mobile').classList.remove('hidden');
+    
+    const name = user.user_metadata?.first_name || user.email;
+    $('user-name').textContent = name;
+    $('user-name-sidebar').textContent = name;
+    
     await loadBudgets();
   }
   async function fetchAll(table, columns, filters) {
@@ -88,7 +116,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       const li = document.createElement('li'); const content = document.createElement('div');
       const button = document.createElement('button'); button.type = 'button'; button.className = 'budget-button'; button.textContent = b.name;
       button.addEventListener('click', () => selectBudget(b.id));
-      const meta = document.createElement('small'); meta.className = 'row-meta'; meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${b.first_start} – ${b.first_end}, gjentas månedlig`;
+      const meta = document.createElement('small'); meta.className = 'row-meta'; meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${b.first_start} – ${b.first_end}, gjentar månedlig`;
       content.append(button, meta); const amount = document.createElement('strong'); amount.className = 'amount'; amount.textContent = money(Number(b.amount_limit));
       li.append(content, amount); list.append(li);
     }
@@ -169,10 +197,32 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     } catch (err) { if (revision === state.revision) status(`Kunne ikke hente betalinger: ${err.message}`); }
   }
   function initialize() {
-    $('dashboard-month').value = today().slice(0, 7);
-    $('trans-date').value = today(); $('budget-start').value = today();
-    $('budget-end').value = dateString(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0));
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    $('dashboard-month').value = currentMonth;
+    $('trans-date').value = today(); 
+    $('budget-start').value = today();
+    $('budget-end').value = dateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    
     for (const category of categories) $('trans-category').add(new Option(category, category));
+    
+    // Mobile Menu Toggle Logic
+    const menuToggle = $('menu-toggle');
+    const overlay = $('overlay');
+    if(menuToggle) {
+      menuToggle.onclick = () => {
+        $('sidebar').classList.toggle('open');
+        overlay.classList.toggle('active');
+      };
+    }
+    if(overlay) {
+      overlay.onclick = () => {
+        $('sidebar').classList.remove('open');
+        overlay.classList.remove('active');
+      };
+    }
+
     $('tab-login').onclick = () => { $('login-form').classList.remove('hidden'); $('signup-form').classList.add('hidden'); $('tab-login').classList.add('active'); $('tab-signup').classList.remove('active'); clearStatus('auth-error'); };
     $('tab-signup').onclick = () => { $('signup-form').classList.remove('hidden'); $('login-form').classList.add('hidden'); $('tab-signup').classList.add('active'); $('tab-login').classList.remove('active'); clearStatus('auth-error'); };
     if (!db) { status('Kunne ikke laste Supabase.', 'error', 'auth-error'); return; }
@@ -189,7 +239,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       const { error } = await db.auth.signInWithPassword({ email: $('login-email').value.trim(), password: $('login-password').value });
       if (error) status(`Innlogging feilet: ${error.message}`, 'error', 'auth-error');
     };
-    $('logout-btn').onclick = async () => { const { error } = await db.auth.signOut(); if (error) status(error.message); };
+    
+    // Logout handlers for both buttons
+    const handleLogout = async () => { const { error } = await db.auth.signOut(); if (error) status(error.message); };
+    $('logout-btn').onclick = handleLogout;
+    const logoutSidebar = $('logout-btn-sidebar');
+    if(logoutSidebar) logoutSidebar.onclick = handleLogout;
+
     $('budget-form').onsubmit = async event => {
       event.preventDefault(); clearStatus();
       const start = $('budget-start').value, end = $('budget-end').value;
