@@ -176,12 +176,13 @@ body {
   display: block;
 }
 
+/* 🔴 VIKTIG: Sikrer at view-content er synlig når active-klassen er lagt til */
 .view-content {
-  display: none;
+  display: none !important;
 }
 
 .view-content.active {
-  display: block;
+  display: block !important;
   animation: fadeIn 0.3s ease;
 }
 
