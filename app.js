@@ -375,13 +375,27 @@ window.switchView = (viewName) => {
     if (!grid || !b) return;
     grid.replaceChildren();
 
-    const currentUserLabel = state.user.user_metadata?.first_name || state.user.email || 'Meg';
-    const totalsByMember = new Map();
+    const meta = state.user.user_metadata || {};
+    const fullCurrentName = [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim();
+    const currentUserLabel = fullCurrentName || meta.first_name || state.user.email || 'Meg';
 
-    const addMember = label => {
+    // Samler fornavn og fullt navn for innlogget bruker på samme kort
+    const canonicalName = label => {
       const clean = (label || '').trim();
-      if (!clean) return;
-      if (!totalsByMember.has(clean)) totalsByMember.set(clean, 0);
+      if (!clean) return '';
+      const firstNameClean = (meta.first_name || '').trim().toLowerCase();
+      if (firstNameClean && clean.toLowerCase() === firstNameClean) {
+        return currentUserLabel;
+      }
+      return clean;
+    };
+
+    const totalsByMember = new Map();
+    const addMember = label => {
+      const key = canonicalName(label);
+      if (key && !totalsByMember.has(key)) {
+        totalsByMember.set(key, 0);
+      }
     };
 
     if (b.owner_id === state.user.id) {
@@ -393,9 +407,12 @@ window.switchView = (viewName) => {
 
     const budgetRecords = records.filter(t => t.budget_id === b.id);
     for (const t of budgetRecords) {
-      const memberLabel = t.actor_name
-        || (t.user_id === state.user.id ? currentUserLabel : 'Medlem');
-      totalsByMember.set(memberLabel, (totalsByMember.get(memberLabel) || 0) + Number(t.amount));
+      const rawLabel = t.user_id === state.user.id
+        ? (t.actor_name || currentUserLabel)
+        : (t.actor_name || 'Medlem');
+      const key = canonicalName(rawLabel);
+      if (!key) continue;
+      totalsByMember.set(key, (totalsByMember.get(key) || 0) + Number(t.amount));
     }
 
     if (!totalsByMember.size) {
