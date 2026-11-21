@@ -22,7 +22,6 @@ window.switchView = (viewName) => {
     target.classList.add('active');
   }
 
-  // Lukk mobilmeny etter navigasjon
   const drawer = document.getElementById('mobile-drawer');
   const backdrop = document.getElementById('mobile-drawer-backdrop');
   if (drawer && backdrop) {
@@ -60,6 +59,15 @@ window.switchView = (viewName) => {
   const money = value => `${new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} kr`;
   const dateString = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+
+  // Viser alle datoer som dd.mm.yyyy
+  const formatDateNO = s => {
+    if (!s) return '';
+    const [y, m, d] = s.slice(0, 10).split('-');
+    if (!y || !m || !d) return s;
+    return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+  };
+
   const shiftMonth = (s, shift) => {
     const d = parseDate(s);
     const first = new Date(d.getFullYear(), d.getMonth() + shift, 1);
@@ -69,24 +77,28 @@ window.switchView = (viewName) => {
   const nextDate = s => { const d = parseDate(s); d.setDate(d.getDate() + 1); return dateString(d); };
   const today = () => dateString(new Date());
 
-  // 25. - 25. syklus for valgt år og måned (f.eks. 2026-11-25 til 2026-12-25)
+  // Fremovertenkt 25.-25.-periode for valgt måned:
+  // f.eks. November (11) = 25.10.2026 til 25.11.2026
   const cycleRangeFromYearMonth = (yearStr, monthStr) => {
     const year = Number(yearStr);
     const monthIndex = Number(monthStr) - 1;
-    const start = dateString(new Date(year, monthIndex, 25));
-    const end = dateString(new Date(year, monthIndex + 1, 25));
+    const start = dateString(new Date(year, monthIndex - 1, 25));
+    const end = dateString(new Date(year, monthIndex, 25));
     return { start, end };
   };
 
-  // Standard 25. - 25. periode som starter i inneværende syklus
-  const default25Cycle = () => {
+  // Aktiv fremovertenkt periode basert på dagens dato
+  const activeForwardCycle = () => {
     const now = new Date();
     const y = now.getFullYear();
     const m = now.getMonth();
-    const startMonth = now.getDate() >= 25 ? m : m - 1;
-    const start = dateString(new Date(y, startMonth, 25));
-    const end = dateString(new Date(y, startMonth + 1, 25));
-    return { start, end };
+    const targetMonthIndex = now.getDate() <= 25 ? m : m + 1;
+    const targetDate = new Date(y, targetMonthIndex, 1);
+    return {
+      year: targetDate.getFullYear(),
+      month: String(targetDate.getMonth() + 1).padStart(2, '0'),
+      range: cycleRangeFromYearMonth(targetDate.getFullYear(), targetDate.getMonth() + 1)
+    };
   };
 
   const period = (budget, offset) => ({
@@ -95,8 +107,8 @@ window.switchView = (viewName) => {
   });
 
   const thisPeriod = budget => {
-    const now = new Date();
     const anchor = parseDate(budget.first_start);
+    const now = new Date();
     let offset = (now.getFullYear() - anchor.getFullYear()) * 12 + now.getMonth() - anchor.getMonth();
     if (offset < 0) return 0;
     if (period(budget, offset).start > today()) offset--;
@@ -124,17 +136,14 @@ window.switchView = (viewName) => {
   function populateYearAndMonthSelects() {
     const yearSelect = $('dashboard-year');
     const monthSelect = $('dashboard-month');
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const activeCycleMonth = now.getDate() >= 25 ? now.getMonth() : (now.getMonth() + 11) % 12;
-    const activeCycleYear = now.getDate() >= 25 ? currentYear : (now.getMonth() === 0 ? currentYear - 1 : currentYear);
+    const active = activeForwardCycle();
 
     if (yearSelect) {
       yearSelect.replaceChildren();
-      for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+      for (let y = active.year - 3; y <= active.year + 2; y++) {
         yearSelect.add(new Option(String(y), String(y)));
       }
-      yearSelect.value = String(activeCycleYear);
+      yearSelect.value = String(active.year);
     }
 
     if (monthSelect) {
@@ -142,14 +151,14 @@ window.switchView = (viewName) => {
       for (const m of monthNames) {
         monthSelect.add(new Option(m.label, m.value));
       }
-      monthSelect.value = String(activeCycleMonth + 1).padStart(2, '0');
+      monthSelect.value = active.month;
     }
   }
 
   function apply25CycleToBudgetForm() {
-    const { start, end } = default25Cycle();
-    if ($('budget-start')) $('budget-start').value = start;
-    if ($('budget-end')) $('budget-end').value = end;
+    const { range } = activeForwardCycle();
+    if ($('budget-start')) $('budget-start').value = range.start;
+    if ($('budget-end')) $('budget-end').value = range.end;
   }
 
   function setDrawerOpen(open) {
@@ -340,7 +349,7 @@ window.switchView = (viewName) => {
       });
       const meta = document.createElement('small');
       meta.className = 'row-meta';
-      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${b.first_start} – ${b.first_end}`;
+      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${formatDateNO(b.first_start)} – ${formatDateNO(b.first_end)}`;
       content.append(button, meta);
 
       const amount = document.createElement('strong');
@@ -357,6 +366,7 @@ window.switchView = (viewName) => {
     state.offset = b ? thisPeriod(b) : 0;
     if ($('selected-budget')) $('selected-budget').value = id;
     if ($('trans-budget') && id) $('trans-budget').value = id;
+    if ($('share-input-drawer')) $('share-input-drawer').classList.add('hidden');
     updateScope();
     renderBudgetDropdowns();
     refresh();
@@ -365,9 +375,13 @@ window.switchView = (viewName) => {
   function displayDetail(b, records) {
     if (!$('budget-detail')) return;
     $('budget-detail').classList.toggle('hidden', !b);
+    const canShare = Boolean(b && b.kind === 'shared' && b.owner_id === state.user.id);
+    if ($('share-outside-box')) $('share-outside-box').classList.toggle('hidden', !canShare);
+    if (!canShare && $('share-input-drawer')) $('share-input-drawer').classList.add('hidden');
     if (!b) return;
+
     const r = period(b, state.offset);
-    if ($('period-label')) $('period-label').textContent = `${r.start} – ${r.end}`;
+    if ($('period-label')) $('period-label').textContent = `${formatDateNO(r.start)} – ${formatDateNO(r.end)}`;
     if ($('previous-period')) $('previous-period').disabled = state.offset === 0;
     const spent = records
       .filter(t => t.budget_id === b.id && (t.payment_scope === 'shared' || t.user_id === state.user.id))
@@ -375,13 +389,11 @@ window.switchView = (viewName) => {
     if ($('budget-balance')) {
       $('budget-balance').textContent = `${money(spent)} av ${money(Number(b.amount_limit))} · ${money(Number(b.amount_limit) - spent)} igjen`;
     }
-    if ($('share-section')) $('share-section').classList.toggle('hidden', b.kind !== 'shared');
-    if ($('share-form')) $('share-form').classList.toggle('hidden', b.owner_id !== state.user.id);
-    if (b.kind === 'shared') loadMembers(b);
+    if (canShare) loadMembers(b);
   }
 
   async function loadMembers(b) {
-    const { data, error } = await db.from('budget_members').select('display_name').eq('budget_id', b.id).order('joined_at');
+    const { data, error } = await db.from('budget_members').select('display_name').eq('budget_id', b.id);
     if (state.selected !== b.id) return;
     if ($('member-list')) {
       $('member-list').textContent = error
@@ -409,7 +421,7 @@ window.switchView = (viewName) => {
       meta.className = 'row-meta';
       const b = getBudget(t.budget_id);
       meta.textContent = [
-        t.purchase_date,
+        formatDateNO(t.purchase_date),
         t.category,
         t.payment_scope === 'shared' ? 'Felles' : 'Personlig',
         b && !selected ? b.name : null,
@@ -432,7 +444,7 @@ window.switchView = (viewName) => {
     if ($('personal-total')) $('personal-total').textContent = money(personal.reduce((n, t) => n + Number(t.amount), 0));
     if ($('shared-total')) $('shared-total').textContent = money(shared.reduce((n, t) => n + Number(t.amount), 0));
     if ($('dashboard-cycle-label')) {
-      $('dashboard-cycle-label').textContent = `Syklus (25. – 25.): ${cycleRange.start} – ${cycleRange.end}`;
+      $('dashboard-cycle-label').textContent = `Periode (25.–25.): ${formatDateNO(cycleRange.start)} – ${formatDateNO(cycleRange.end)}`;
     }
 
     const sums = new Map();
@@ -443,7 +455,7 @@ window.switchView = (viewName) => {
     list.replaceChildren();
     if (!sums.size) {
       const li = document.createElement('li');
-      li.textContent = 'Ingen betalinger i denne 25.–25.-perioden.';
+      li.textContent = 'Ingen betalinger i denne perioden.';
       list.append(li);
       return;
     }
@@ -462,9 +474,9 @@ window.switchView = (viewName) => {
     if (!state.user) return;
     const revision = ++state.revision;
     const b = getBudget(state.selected);
-    const now = new Date();
-    const yearVal = $('dashboard-year')?.value || String(now.getFullYear());
-    const monthVal = $('dashboard-month')?.value || String(now.getMonth() + 1).padStart(2, '0');
+    const active = activeForwardCycle();
+    const yearVal = $('dashboard-year')?.value || String(active.year);
+    const monthVal = $('dashboard-month')?.value || active.month;
     const cycle = cycleRangeFromYearMonth(yearVal, monthVal);
     const chosen = b && period(b, state.offset);
     const fields = 'id,user_id,budget_id,store_name,amount,category,payment_scope,actor_name,description,purchase_date,created_at';
@@ -496,7 +508,6 @@ window.switchView = (viewName) => {
       for (const category of categories) $('trans-category').add(new Option(category, category));
     }
 
-    // Navigasjon (sidemeny + mobilmeny)
     document.querySelectorAll('.nav-item[data-view]').forEach(item => {
       item.addEventListener('click', e => {
         e.preventDefault();
@@ -504,12 +515,10 @@ window.switchView = (viewName) => {
       });
     });
 
-    // Hamborgermeny på mobil
     $('hamburger-btn')?.addEventListener('click', () => setDrawerOpen(true));
     $('mobile-drawer-close')?.addEventListener('click', () => setDrawerOpen(false));
     $('mobile-drawer-backdrop')?.addEventListener('click', () => setDrawerOpen(false));
 
-    // Minimerbar sidemeny på iPad og større
     $('sidebar-toggle-btn')?.addEventListener('click', () => {
       const sidebar = $('sidebar');
       if (!sidebar) return;
@@ -519,7 +528,6 @@ window.switchView = (viewName) => {
       if (willMinimize) setBudgetDropdownOpen(false, 'sidebar');
     });
 
-    // Nedtrekksmeny for budsjetter via Budsjetter-fanen
     $('sidebar-budget-dropdown-btn')?.addEventListener('click', e => {
       e.preventDefault();
       e.stopPropagation();
@@ -541,7 +549,15 @@ window.switchView = (viewName) => {
       setBudgetDropdownOpen(!expanded, 'mobile');
     });
 
-    // Auth-faner
+    $('toggle-share-input-btn')?.addEventListener('click', () => {
+      const drawer = $('share-input-drawer');
+      if (!drawer) return;
+      drawer.classList.toggle('hidden');
+      if (!drawer.classList.contains('hidden')) {
+        $('share-identifier')?.focus();
+      }
+    });
+
     $('tab-login')?.addEventListener('click', () => {
       $('login-form')?.classList.remove('hidden');
       $('signup-form')?.classList.add('hidden');
@@ -617,7 +633,7 @@ window.switchView = (viewName) => {
 
     $('set-25-cycle-btn')?.addEventListener('click', () => {
       apply25CycleToBudgetForm();
-      status('Start- og sluttdato er satt til 25. – 25.', 'success');
+      status('Datoene er satt til 25. – 25.', 'success');
     });
 
     $('budget-form')?.addEventListener('submit', async event => {
@@ -655,15 +671,30 @@ window.switchView = (viewName) => {
 
     $('share-form')?.addEventListener('submit', async event => {
       event.preventDefault();
+      clearStatus();
       const b = getBudget(state.selected);
       if (!b || b.owner_id !== state.user?.id) return;
-      const { data, error } = await db.rpc('add_budget_member', {
-        p_budget: b.id,
-        p_identifier: $('share-identifier').value.trim()
-      });
-      if (error) return status(`Kunne ikke dele: ${error.message}`);
+
+      const identifiers = $('share-identifier').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (!identifiers.length) return;
+
+      const added = [];
+      for (const identifier of identifiers) {
+        const { data, error } = await db.rpc('add_budget_member', {
+          p_budget: b.id,
+          p_identifier: identifier
+        });
+        if (error) return status(`Kunne ikke dele med ${identifier}: ${error.message}`);
+        added.push(data);
+      }
+
       $('share-form').reset();
-      status(`Lagt til: ${data}`, 'success');
+      $('share-input-drawer')?.classList.add('hidden');
+      status(`Lagt til: ${added.join(', ')}`, 'success');
       loadMembers(b);
     });
 

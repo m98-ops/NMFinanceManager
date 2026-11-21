@@ -239,11 +239,11 @@
               </div>
               <div class="grid-2">
                 <div class="input-group">
-                  <label for="budget-start">Startdato (25. hver mnd)</label>
+                  <label for="budget-start">Startdato</label>
                   <input id="budget-start" type="date" required>
                 </div>
                 <div class="input-group">
-                  <label for="budget-end">Sluttdato (25. neste mnd)</label>
+                  <label for="budget-end">Sluttdato</label>
                   <input id="budget-end" type="date" required>
                 </div>
               </div>
@@ -266,7 +266,7 @@
         <div id="view-register" class="view-content hidden">
           <div class="card">
             <h2>Registrer betaling</h2>
-            <p class="hint">Utlegg registrert i et budsjett følger budsjettets periode (standard 25. – 25.).</p>
+            <p class="hint">Utlegg i budsjetter følger periodene 25. – 25.</p>
             <form id="transaction-form" class="modern-form">
               <div class="input-group">
                 <label for="trans-budget">Budsjett / Liste</label>
@@ -328,19 +328,28 @@
                 <button id="next-period" type="button" class="btn-icon">→</button>
               </div>
               <p id="budget-balance" class="total-display"></p>
-              <div id="share-section" class="hidden">
-                <h3>Del budsjett</h3>
-                <p class="hint">Del med e-post eller brukernavn.</p>
-                <form id="share-form" class="inline-form">
-                  <input id="share-identifier" required placeholder="E-post eller brukernavn">
-                  <button type="submit" class="btn-primary">Legg til</button>
-                </form>
-                <p id="member-list" class="hint"></p>
-              </div>
             </div>
 
             <h3 class="section-divider">Betalinger</h3>
             <ul id="transactions-list" class="rows"></ul>
+          </div>
+
+          <!-- DELING UTENFOR HOVEDBOKSEN -->
+          <div id="share-outside-box" class="outside-share-panel hidden">
+            <div class="outside-share-header">
+              <button id="toggle-share-input-btn" type="button" class="btn-secondary-action">
+                <span class="material-icons-outlined">person_add</span>
+                <span>Del budsjett</span>
+              </button>
+              <span id="member-list" class="hint"></span>
+            </div>
+
+            <div id="share-input-drawer" class="share-input-drawer hidden">
+              <form id="share-form" class="inline-form">
+                <input id="share-identifier" type="email" required placeholder="E-postadresse (flere skilles med komma)">
+                <button type="submit" class="btn-primary">Legg til</button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

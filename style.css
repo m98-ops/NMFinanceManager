@@ -79,7 +79,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Minimert sidemeny */
 .sidebar.minimized {
   width: var(--sidebar-collapsed-width);
   padding: 16px 10px;
@@ -451,13 +450,9 @@ body {
   background: var(--bg-card);
   border-radius: var(--radius);
   padding: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
-}
-
-.card:last-child {
-  margin-bottom: 0;
 }
 
 .card-header-row {
@@ -508,6 +503,47 @@ h3 {
   border-top: 1px solid var(--border);
 }
 
+/* --- DELING UTENFOR BOKS --- */
+.outside-share-panel {
+  margin-top: 10px;
+  padding: 6px 2px;
+}
+
+.outside-share-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary-action:hover {
+  background: var(--primary-soft);
+  border-color: #bfdbfe;
+}
+
+.btn-secondary-action .material-icons-outlined {
+  font-size: 18px;
+}
+
+.share-input-drawer {
+  margin-top: 10px;
+}
+
 /* --- SKJEMAER --- */
 .modern-form {
   display: flex;
@@ -555,12 +591,12 @@ select:focus {
   background: var(--primary);
   color: #fff;
   border: none;
-  padding: 11px 14px;
+  padding: 10px 14px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   cursor: pointer;
-  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .btn-primary:hover {
@@ -623,7 +659,7 @@ select:focus {
 
 .mini-select {
   width: auto;
-  min-width: 92px;
+  min-width: 96px;
   padding: 6px 10px;
   font-size: 0.85rem;
   border-radius: 8px;
@@ -705,13 +741,12 @@ select:focus {
 .hint {
   color: var(--secondary);
   font-size: 0.82rem;
-  margin: 0 0 8px;
+  margin: 0;
 }
 
 .inline-form {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
 .inline-form input {
@@ -801,6 +836,5 @@ select:focus {
 
   .card {
     padding: 20px 24px;
-    margin-bottom: 16px;
   }
 }
