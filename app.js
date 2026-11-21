@@ -13,8 +13,6 @@ window.switchView = viewName => {
     c.classList.toggle('hidden', !isMatch);
   });
 
-  document.getElementById('mobile-drawer')?.classList.add('hidden');
-  document.getElementById('mobile-drawer-backdrop')?.classList.add('hidden');
   if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: 'instant' });
 };
 
@@ -139,7 +137,6 @@ window.switchView = viewName => {
     const meta = state.user.user_metadata || {};
     const name = meta.first_name || state.user.email;
     if ($('user-name-sidebar')) $('user-name-sidebar').textContent = name;
-    if ($('user-name-mobile')) $('user-name-mobile').textContent = name;
     if ($('profile-email-display')) $('profile-email-display').textContent = state.user.email || '-';
     if ($('profile-id-display')) $('profile-id-display').textContent = state.user.id || '-';
     if ($('profile-firstname')) $('profile-firstname').value = meta.first_name || '';
@@ -228,40 +225,31 @@ window.switchView = viewName => {
     status(`Budsjettet "${b.name}" er slettet.`, 'success');
   }
 
-  function setBudgetDropdownOpen(open, scope = 'both') {
-    const pairs = [
-      ['sidebar-budget-dropdown-btn', 'sidebar-budget-dropdown', 'sidebar'],
-      ['mobile-budget-dropdown-btn', 'mobile-budget-dropdown', 'mobile']
-    ];
-    for (const [btnId, listId, sc] of pairs) {
-      if (scope !== 'both' && scope !== sc) continue;
-      $(btnId)?.setAttribute('aria-expanded', String(open));
-      toggleHidden($(listId), !open);
-    }
+  function setBudgetDropdownOpen(open) {
+    $('sidebar-budget-dropdown-btn')?.setAttribute('aria-expanded', String(open));
+    toggleHidden($('sidebar-budget-dropdown'), !open);
   }
 
   function renderBudgetDropdowns() {
-    for (const id of ['sidebar-budget-dropdown', 'mobile-budget-dropdown']) {
-      const list = $(id);
-      if (!list) continue;
-      list.replaceChildren();
-      if (!state.budgets.length) {
-        const li = document.createElement('li');
-        li.className = 'dropdown-empty';
-        li.textContent = 'Ingen budsjetter';
-        list.append(li);
-        continue;
-      }
-      for (const b of state.budgets) {
-        const li = document.createElement('li');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `nav-dropdown-item${state.selected === b.id ? ' selected' : ''}`;
-        btn.innerHTML = `<span>${b.name}</span><span class="nav-dropdown-badge">${b.kind === 'shared' ? 'Felles' : 'Personlig'}</span>`;
-        btn.addEventListener('click', () => { selectBudget(b.id); window.switchView('history'); });
-        li.append(btn);
-        list.append(li);
-      }
+    const list = $('sidebar-budget-dropdown');
+    if (!list) return;
+    list.replaceChildren();
+    if (!state.budgets.length) {
+      const li = document.createElement('li');
+      li.className = 'dropdown-empty';
+      li.textContent = 'Ingen budsjetter';
+      list.append(li);
+      return;
+    }
+    for (const b of state.budgets) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `nav-dropdown-item${state.selected === b.id ? ' selected' : ''}`;
+      btn.innerHTML = `<span>${b.name}</span><span class="nav-dropdown-badge">${b.kind === 'shared' ? 'Felles' : 'Personlig'}</span>`;
+      btn.addEventListener('click', () => { selectBudget(b.id); window.switchView('history'); });
+      li.append(btn);
+      list.append(li);
     }
   }
 
@@ -291,6 +279,7 @@ window.switchView = viewName => {
     toggleHidden($('auth-section'), false);
     toggleHidden($('app-section'), true);
     toggleHidden($('mobile-header'), true);
+    toggleHidden($('mobile-bottom-nav'), true);
     $('transactions-list')?.replaceChildren();
     $('budget-list')?.replaceChildren();
     $('member-spending-grid')?.replaceChildren();
@@ -305,6 +294,7 @@ window.switchView = viewName => {
     toggleHidden($('auth-section'), true);
     toggleHidden($('app-section'), false);
     toggleHidden($('mobile-header'), false);
+    toggleHidden($('mobile-bottom-nav'), false);
     syncUserDisplay();
     await loadBudgets();
     window.switchView('dashboard');
@@ -441,7 +431,6 @@ window.switchView = viewName => {
     refresh();
   }
 
-  // Betalt fra felles konto = ingen Vipps-avsjekk og ingen gjeld
   const isSharedAccountTx = t => t.payment_scope === 'shared';
   const isDebtEligibleTx = t => !isSharedAccountTx(t) && getBudget(t.budget_id)?.kind === 'shared';
 
@@ -810,7 +799,13 @@ window.switchView = viewName => {
     if ($('trans-category')) categories.forEach(c => $('trans-category').add(new Option(c, c)));
 
     document.querySelectorAll('.nav-item[data-view]').forEach(item => {
-      item.addEventListener('click', e => { e.preventDefault(); window.switchView(item.dataset.view); });
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        const view = item.dataset.view;
+        if (view === 'profile') openProfileView();
+        else if (view === 'register') goToRegister(state.selected);
+        else window.switchView(view);
+      });
     });
 
     $('debt-box-card')?.addEventListener('click', () => window.switchView('debt'));
@@ -825,7 +820,7 @@ window.switchView = viewName => {
     $('budgets-register-btn')?.addEventListener('click', () => goToRegister(state.selected));
     $('history-register-btn')?.addEventListener('click', () => goToRegister(state.selected));
 
-    ['open-profile-sidebar', 'open-profile-mobile', 'open-profile-header'].forEach(id => $(id)?.addEventListener('click', openProfileView));
+    $('open-profile-sidebar')?.addEventListener('click', openProfileView);
 
     $('profile-form')?.addEventListener('submit', async e => {
       e.preventDefault();
@@ -853,15 +848,11 @@ window.switchView = viewName => {
       await refresh();
     });
 
-    $('hamburger-btn')?.addEventListener('click', () => { toggleHidden($('mobile-drawer'), false); toggleHidden($('mobile-drawer-backdrop'), false); });
-    $('mobile-drawer-close')?.addEventListener('click', () => { toggleHidden($('mobile-drawer'), true); toggleHidden($('mobile-drawer-backdrop'), true); });
-    $('mobile-drawer-backdrop')?.addEventListener('click', () => { toggleHidden($('mobile-drawer'), true); toggleHidden($('mobile-drawer-backdrop'), true); });
-
     $('sidebar-toggle-btn')?.addEventListener('click', () => {
       const mini = !$('sidebar')?.classList.contains('minimized');
       $('sidebar')?.classList.toggle('minimized', mini);
       document.body.classList.toggle('sidebar-minimized', mini);
-      if (mini) setBudgetDropdownOpen(false, 'sidebar');
+      if (mini) setBudgetDropdownOpen(false);
     });
 
     $('sidebar-budget-dropdown-btn')?.addEventListener('click', e => {
@@ -869,15 +860,10 @@ window.switchView = viewName => {
       if ($('sidebar')?.classList.contains('minimized')) {
         $('sidebar').classList.remove('minimized');
         document.body.classList.remove('sidebar-minimized');
-        setBudgetDropdownOpen(true, 'sidebar');
+        setBudgetDropdownOpen(true);
         return;
       }
-      setBudgetDropdownOpen($('sidebar-budget-dropdown-btn').getAttribute('aria-expanded') !== 'true', 'sidebar');
-    });
-
-    $('mobile-budget-dropdown-btn')?.addEventListener('click', e => {
-      e.preventDefault(); e.stopPropagation();
-      setBudgetDropdownOpen($('mobile-budget-dropdown-btn').getAttribute('aria-expanded') !== 'true', 'mobile');
+      setBudgetDropdownOpen($('sidebar-budget-dropdown-btn').getAttribute('aria-expanded') !== 'true');
     });
 
     $('selected-budget-actions-toggle')?.addEventListener('click', e => {
@@ -942,7 +928,8 @@ window.switchView = viewName => {
 
     const handleLogout = async () => { const { error } = await db.auth.signOut(); if (error) status(error.message); };
     $('logout-btn-sidebar')?.addEventListener('click', handleLogout);
-    $('logout-btn-mobile')?.addEventListener('click', handleLogout);
+    $('logout-btn-mobile-top')?.addEventListener('click', handleLogout);
+    $('logout-btn-profile')?.addEventListener('click', handleLogout);
 
     $('set-25-cycle-btn')?.addEventListener('click', () => { apply25CycleToBudgetForm(); status('Datoene er satt til 25. – 25.', 'success'); });
 

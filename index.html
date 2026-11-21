@@ -72,59 +72,32 @@
     </div>
   </aside>
 
-  <!-- MOBIL DRAWER (< 768px) -->
-  <div id="mobile-drawer-backdrop" class="drawer-backdrop hidden"></div>
-  <aside id="mobile-drawer" class="mobile-drawer hidden" aria-label="Mobilmeny">
-    <div class="drawer-header">
-      <span class="brand-full">NM Finance</span>
-      <button id="mobile-drawer-close" type="button" class="btn-icon" aria-label="Lukk meny">
-        <span class="material-icons-outlined">close</span>
-      </button>
-    </div>
+  <!-- MOBIL BUNN-NAVIGASJON (< 768px) -->
+  <nav id="mobile-bottom-nav" class="mobile-bottom-nav hidden" aria-label="Mobilmeny">
+    <button type="button" class="bottom-nav-item nav-item active" data-view="dashboard">
+      <span class="material-icons-outlined">home</span>
+      <span class="bottom-nav-label">Oversikt</span>
+    </button>
 
-    <nav class="nav-menu">
-      <a href="#" class="nav-item active" data-view="dashboard">
-        <span class="material-icons-outlined">dashboard</span>
-        <span class="nav-label">Dashboard</span>
-      </a>
+    <button type="button" class="bottom-nav-item nav-item" data-view="budgets">
+      <span class="material-icons-outlined">account_balance_wallet</span>
+      <span class="bottom-nav-label">Budsjett</span>
+    </button>
 
-      <div class="nav-group">
-        <div class="nav-item-row">
-          <a href="#" class="nav-item" data-view="budgets">
-            <span class="material-icons-outlined">account_balance_wallet</span>
-            <span class="nav-label">Budsjetter</span>
-          </a>
-          <button id="mobile-budget-dropdown-btn" type="button" class="nav-dropdown-btn" aria-expanded="false" aria-controls="mobile-budget-dropdown" title="Velg budsjett">
-            <span class="material-icons-outlined">expand_more</span>
-          </button>
-        </div>
-        <ul id="mobile-budget-dropdown" class="nav-dropdown-list hidden">
-          <li class="dropdown-empty">Ingen budsjetter</li>
-        </ul>
-      </div>
+    <button id="mobile-nav-register-btn" type="button" class="bottom-nav-center-btn nav-item" data-view="register" aria-label="Registrer betaling">
+      <span class="material-icons-outlined">add</span>
+    </button>
 
-      <a href="#" class="nav-item" data-view="register">
-        <span class="material-icons-outlined">add_circle</span>
-        <span class="nav-label">Registrer</span>
-      </a>
+    <button type="button" class="bottom-nav-item nav-item" data-view="history">
+      <span class="material-icons-outlined">history</span>
+      <span class="bottom-nav-label">Historikk</span>
+    </button>
 
-      <a href="#" class="nav-item" data-view="history">
-        <span class="material-icons-outlined">history</span>
-        <span class="nav-label">Historikk</span>
-      </a>
-    </nav>
-
-    <div class="user-profile">
-      <button id="open-profile-mobile" type="button" class="profile-trigger" title="Åpne profil">
-        <span class="avatar-circle">👤</span>
-        <span class="user-info">
-          <span id="user-name-mobile" class="name">Bruker</span>
-          <span class="profile-sub">Se profil</span>
-        </span>
-      </button>
-      <button id="logout-btn-mobile" type="button" class="btn-text">Logg ut</button>
-    </div>
-  </aside>
+    <button id="open-profile-mobile-nav" type="button" class="bottom-nav-item nav-item" data-view="profile">
+      <span class="material-icons-outlined">person_outline</span>
+      <span class="bottom-nav-label">Profil</span>
+    </button>
+  </nav>
 
   <!-- MAIN CONTENT -->
   <main class="main-content">
@@ -132,12 +105,9 @@
     <!-- Mobile Header -->
     <header id="mobile-header" class="mobile-header hidden">
       <div class="header-left">
-        <button id="hamburger-btn" type="button" class="btn-icon hamburger-btn" aria-label="Åpne meny">
-          <span class="material-icons-outlined">menu</span>
-        </button>
         <h1>NM Finance</h1>
       </div>
-      <button id="open-profile-header" type="button" class="avatar-small" title="Åpne profil" aria-label="Åpne profil">👤</button>
+      <button id="logout-btn-mobile-top" type="button" class="btn-text">Logg ut</button>
     </header>
 
     <!-- AUTH -->
@@ -214,7 +184,7 @@
                     <select id="dashboard-month" class="mini-select"></select>
                   </div>
                 </div>
-                <button id="dashboard-register-btn" type="button" class="btn-primary btn-register-quick">
+                <button id="dashboard-register-btn" type="button" class="btn-primary btn-register-quick desktop-only-btn">
                   <span class="material-icons-outlined">add</span>
                   <span>Registrer</span>
                 </button>
@@ -264,7 +234,7 @@
               <span class="material-icons-outlined">add</span>
               <span>Nytt budsjett</span>
             </button>
-            <button id="budgets-register-btn" type="button" class="btn-primary btn-register-quick">
+            <button id="budgets-register-btn" type="button" class="btn-primary btn-register-quick desktop-only-btn">
               <span class="material-icons-outlined">add</span>
               <span>Registrer</span>
             </button>
@@ -381,7 +351,7 @@
                   </div>
                 </div>
 
-                <button id="history-register-btn" type="button" class="btn-primary btn-register-quick">
+                <button id="history-register-btn" type="button" class="btn-primary btn-register-quick desktop-only-btn">
                   <span class="material-icons-outlined">add</span>
                   <span>Registrer</span>
                 </button>
@@ -467,6 +437,9 @@
               </div>
               <button type="submit" class="btn-primary">Lagre profil</button>
             </form>
+            <div class="mobile-profile-logout">
+              <button id="logout-btn-profile" type="button" class="btn-mini danger">Logg ut</button>
+            </div>
           </div>
         </div>
 
