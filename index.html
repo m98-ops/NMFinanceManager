@@ -223,8 +223,11 @@
         <div id="view-budgets" class="view-content hidden">
           <div class="card">
             <div class="card-header-row">
-              <h2>Opprett nytt budsjett</h2>
-              <button id="set-25-cycle-btn" type="button" class="btn-chip">Bruk 25. – 25.</button>
+              <h2 id="budget-form-title">Opprett nytt budsjett</h2>
+              <div class="header-actions-inline">
+                <button id="set-25-cycle-btn" type="button" class="btn-chip">Bruk 25. – 25.</button>
+                <button id="cancel-edit-budget-btn" type="button" class="btn-chip hidden">Avbryt endring</button>
+              </div>
             </div>
             <form id="budget-form" class="modern-form">
               <div class="grid-2">
@@ -254,7 +257,7 @@
                   <option value="shared">Felles</option>
                 </select>
               </div>
-              <button type="submit" class="btn-primary">Opprett budsjett</button>
+              <button id="budget-submit-btn" type="submit" class="btn-primary">Opprett budsjett</button>
             </form>
 
             <h3 class="section-divider">Dine budsjetter</h3>
@@ -314,7 +317,13 @@
         <div id="view-history" class="view-content hidden">
           <div class="card">
             <div class="budget-selector-wrapper">
-              <h2>Valgt budsjett</h2>
+              <div class="card-header-row">
+                <h2>Valgt budsjett</h2>
+                <div id="selected-budget-owner-actions" class="row-actions hidden">
+                  <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
+                  <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
+                </div>
+              </div>
               <label for="selected-budget">Budsjett</label>
               <select id="selected-budget">
                 <option value="">Velg budsjett</option>
@@ -351,7 +360,7 @@
 
             <div id="share-input-drawer" class="share-input-drawer hidden">
               <form id="share-form" class="inline-form">
-                <input id="share-identifier" type="email" required placeholder="E-postadresse (flere skilles med komma)">
+                <input id="share-identifier" type="text" required placeholder="E-post eller brukernavn (flere skilles med komma)">
                 <button type="submit" class="btn-primary">Legg til</button>
               </form>
             </div>

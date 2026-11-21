@@ -112,7 +112,15 @@ window.switchView = (viewName) => {
     return Math.max(0, activeEndMonthTotal - anchor25MonthIndex(budget));
   };
 
-  const state = { user: null, budgets: [], selected: '', offset: 0, revision: 0, memberNames: [] };
+  const state = {
+    user: null,
+    budgets: [],
+    selected: '',
+    offset: 0,
+    revision: 0,
+    memberNames: [],
+    editingBudgetId: null
+  };
   const getBudget = id => state.budgets.find(b => b.id === id);
 
   function status(text, type = 'error', target = 'app-message') {
@@ -156,6 +164,60 @@ window.switchView = (viewName) => {
     const { range } = activeForwardCycle();
     if ($('budget-start')) $('budget-start').value = range.start;
     if ($('budget-end')) $('budget-end').value = range.end;
+  }
+
+  function resetBudgetFormToCreate() {
+    state.editingBudgetId = null;
+    $('budget-form')?.reset();
+    apply25CycleToBudgetForm();
+    if ($('budget-form-title')) $('budget-form-title').textContent = 'Opprett nytt budsjett';
+    if ($('budget-submit-btn')) $('budget-submit-btn').textContent = 'Opprett budsjett';
+    $('cancel-edit-budget-btn')?.classList.add('hidden');
+  }
+
+  function startEditingBudget(budgetId) {
+    const b = getBudget(budgetId);
+    if (!b || b.owner_id !== state.user?.id) return;
+    state.editingBudgetId = b.id;
+    if ($('budget-name')) $('budget-name').value = b.name;
+    if ($('budget-limit')) $('budget-limit').value = String(Number(b.amount_limit));
+    if ($('budget-start')) $('budget-start').value = b.first_start;
+    if ($('budget-end')) $('budget-end').value = b.first_end;
+    if ($('budget-type')) $('budget-type').value = b.kind;
+    if ($('budget-form-title')) $('budget-form-title').textContent = `Endre budsjett: ${b.name}`;
+    if ($('budget-submit-btn')) $('budget-submit-btn').textContent = 'Lagre endringer';
+    $('cancel-edit-budget-btn')?.classList.remove('hidden');
+    switchView('budgets');
+    $('budget-name')?.focus();
+  }
+
+  async function deleteBudgetById(budgetId) {
+    const b = getBudget(budgetId);
+    if (!b || b.owner_id !== state.user?.id) return;
+    const confirmed = window.confirm(`Er du sikker på at du vil slette budsjettet "${b.name}"?`);
+    if (!confirmed) return;
+
+    clearStatus();
+    const { error } = await db
+      .from('budgets')
+      .delete()
+      .eq('id', b.id)
+      .eq('created_by', state.user.id);
+
+    if (error) {
+      return status(`Kunne ikke slette budsjett: ${error.message}`);
+    }
+
+    if (state.editingBudgetId === b.id) {
+      resetBudgetFormToCreate();
+    }
+    if (state.selected === b.id) {
+      state.selected = '';
+      state.offset = 0;
+    }
+
+    await loadBudgets();
+    status(`Budsjettet "${b.name}" er slettet.`, 'success');
   }
 
   function setDrawerOpen(open) {
@@ -254,6 +316,7 @@ window.switchView = (viewName) => {
     state.budgets = [];
     state.selected = '';
     state.memberNames = [];
+    state.editingBudgetId = null;
     document.body.classList.remove('is-authenticated');
     setDrawerOpen(false);
     setBudgetDropdownOpen(false);
@@ -349,10 +412,35 @@ window.switchView = (viewName) => {
       meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${formatDateNO(r.start)} – ${formatDateNO(r.end)}`;
       content.append(button, meta);
 
+      const rightBox = document.createElement('div');
+      rightBox.className = 'row-right';
+
       const amount = document.createElement('strong');
       amount.className = 'amount';
       amount.textContent = money(Number(b.amount_limit));
-      li.append(content, amount);
+      rightBox.append(amount);
+
+      if (b.owner_id === state.user?.id) {
+        const actions = document.createElement('div');
+        actions.className = 'row-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn-mini';
+        editBtn.textContent = 'Endre';
+        editBtn.addEventListener('click', () => startEditingBudget(b.id));
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn-mini danger';
+        delBtn.textContent = 'Slett';
+        delBtn.addEventListener('click', () => deleteBudgetById(b.id));
+
+        actions.append(editBtn, delBtn);
+        rightBox.append(actions);
+      }
+
+      li.append(content, rightBox);
       list.append(li);
     }
   }
@@ -379,7 +467,6 @@ window.switchView = (viewName) => {
     const fullCurrentName = [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim();
     const currentUserLabel = fullCurrentName || meta.first_name || state.user.email || 'Meg';
 
-    // Samler fornavn og fullt navn for innlogget bruker på samme kort
     const canonicalName = label => {
       const clean = (label || '').trim();
       if (!clean) return '';
@@ -445,9 +532,12 @@ window.switchView = (viewName) => {
     if (!$('budget-detail')) return;
     $('budget-detail').classList.toggle('hidden', !b);
 
-    const canShare = Boolean(b && b.owner_id === state.user.id);
-    if ($('share-outside-box')) $('share-outside-box').classList.toggle('hidden', !canShare);
-    if (!canShare && $('share-input-drawer')) $('share-input-drawer').classList.add('hidden');
+    const isOwner = Boolean(b && b.owner_id === state.user.id);
+    if ($('selected-budget-owner-actions')) {
+      $('selected-budget-owner-actions').classList.toggle('hidden', !isOwner);
+    }
+    if ($('share-outside-box')) $('share-outside-box').classList.toggle('hidden', !isOwner);
+    if (!isOwner && $('share-input-drawer')) $('share-input-drawer').classList.add('hidden');
     if (!b) return;
 
     const r = period(b, state.offset);
@@ -642,6 +732,19 @@ window.switchView = (viewName) => {
       }
     });
 
+    $('edit-selected-budget-btn')?.addEventListener('click', () => {
+      if (state.selected) startEditingBudget(state.selected);
+    });
+
+    $('delete-selected-budget-btn')?.addEventListener('click', () => {
+      if (state.selected) deleteBudgetById(state.selected);
+    });
+
+    $('cancel-edit-budget-btn')?.addEventListener('click', () => {
+      resetBudgetFormToCreate();
+      clearStatus();
+    });
+
     $('tab-login')?.addEventListener('click', () => {
       $('login-form')?.classList.remove('hidden');
       $('signup-form')?.classList.add('hidden');
@@ -728,18 +831,38 @@ window.switchView = (viewName) => {
       if (!start || !end || end <= start) {
         return status('Sluttdato må være etter startdato.');
       }
-      const { data, error } = await db.from('budgets').insert({
-        created_by: state.user.id,
+
+      const payload = {
         title: $('budget-name').value.trim(),
         total_amount: Number($('budget-limit').value),
         start_date: start,
         end_date: end,
         kind: $('budget-type').value
+      };
+
+      if (state.editingBudgetId) {
+        const editingId = state.editingBudgetId;
+        const { error } = await db
+          .from('budgets')
+          .update(payload)
+          .eq('id', editingId)
+          .eq('created_by', state.user.id);
+
+        if (error) return status(`Kunne ikke oppdatere budsjett: ${error.message}`);
+        resetBudgetFormToCreate();
+        await loadBudgets();
+        status('Budsjettet er oppdatert.', 'success');
+        switchView('budgets');
+        return;
+      }
+
+      const { data, error } = await db.from('budgets').insert({
+        ...payload,
+        created_by: state.user.id
       }).select('id').single();
 
       if (error) return status(`Kunne ikke opprette budsjett: ${error.message}`);
-      $('budget-form').reset();
-      apply25CycleToBudgetForm();
+      resetBudgetFormToCreate();
       await loadBudgets();
       selectBudget(data.id);
       status('Budsjettet er opprettet.', 'success');

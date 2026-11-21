@@ -4,6 +4,8 @@
   --primary-dark: #1e40af;
   --primary-soft: #eff6ff;
   --secondary: #64748b;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
   --bg-body: #f1f5f9;
   --bg-card: #ffffff;
   --text-main: #0f172a;
@@ -459,12 +461,21 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 .card-header-row h2 {
   margin-bottom: 0;
+}
+
+.header-actions-inline,
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .btn-chip {
@@ -481,6 +492,33 @@ body {
 
 .btn-chip:hover {
   background: #dbeafe;
+}
+
+.btn-mini {
+  background: #f8fafc;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-mini:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-mini.danger {
+  color: var(--danger);
+  border-color: #fecaca;
+  background: var(--danger-soft);
+}
+
+.btn-mini.danger:hover {
+  background: #fee2e2;
 }
 
 h2 {
@@ -746,6 +784,13 @@ select:focus {
   font-size: 0.8rem;
   display: block;
   margin-top: 2px;
+}
+
+.row-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .amount {
