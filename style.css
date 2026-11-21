@@ -698,6 +698,29 @@ select:focus {
   color: var(--text-main);
 }
 
+/* --- FORBRUK PER MEDLEM I BUDSJETT --- */
+.member-spending-section {
+  margin: 12px 0 6px;
+}
+
+.member-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.member-stat-card {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.member-stat-card.highlight {
+  background: var(--primary-soft);
+  border-color: #bfdbfe;
+}
+
 /* --- LISTER --- */
 .rows {
   list-style: none;

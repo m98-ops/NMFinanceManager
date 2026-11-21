@@ -60,7 +60,6 @@ window.switchView = (viewName) => {
   const dateString = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 
-  // Viser alle datoer som dd.mm.yyyy
   const formatDateNO = s => {
     if (!s) return '';
     const [y, m, d] = s.slice(0, 10).split('-');
@@ -71,8 +70,6 @@ window.switchView = (viewName) => {
   const nextDate = s => { const d = parseDate(s); d.setDate(d.getDate() + 1); return dateString(d); };
   const today = () => dateString(new Date());
 
-  // Fremovertenkt 25.-25.-periode for valgt måned:
-  // f.eks. November (11) = 25.10.2026 til 25.11.2026
   const cycleRangeFromYearMonth = (yearStr, monthStr) => {
     const year = Number(yearStr);
     const monthIndex = Number(monthStr) - 1;
@@ -81,7 +78,6 @@ window.switchView = (viewName) => {
     return { start, end };
   };
 
-  // Aktiv fremovertenkt periode basert på dagens dato
   const activeForwardCycle = () => {
     const now = new Date();
     const y = now.getFullYear();
@@ -95,12 +91,9 @@ window.switchView = (viewName) => {
     };
   };
 
-  // Budsjettperiode fra 25. til 25., forankret på første 25.-periode fra start_date
   const anchor25MonthIndex = budget => {
     const d = parseDate(budget.first_start);
-    // Hvis startdatoen er etter den 25. i måneden, starter første 25.-periode i neste måned
-    const firstEndMonthIdx = d.getDate() > 25 ? (d.getFullYear() * 12 + d.getMonth() + 1) : (d.getFullYear() * 12 + d.getMonth());
-    return firstEndMonthIdx;
+    return d.getDate() > 25 ? (d.getFullYear() * 12 + d.getMonth() + 1) : (d.getFullYear() * 12 + d.getMonth());
   };
 
   const period = (budget, offset) => {
@@ -119,7 +112,7 @@ window.switchView = (viewName) => {
     return Math.max(0, activeEndMonthTotal - anchor25MonthIndex(budget));
   };
 
-  const state = { user: null, budgets: [], selected: '', offset: 0, revision: 0 };
+  const state = { user: null, budgets: [], selected: '', offset: 0, revision: 0, memberNames: [] };
   const getBudget = id => state.budgets.find(b => b.id === id);
 
   function status(text, type = 'error', target = 'app-message') {
@@ -260,6 +253,7 @@ window.switchView = (viewName) => {
     state.user = null;
     state.budgets = [];
     state.selected = '';
+    state.memberNames = [];
     document.body.classList.remove('is-authenticated');
     setDrawerOpen(false);
     setBudgetDropdownOpen(false);
@@ -268,6 +262,7 @@ window.switchView = (viewName) => {
     $('mobile-header')?.classList.add('hidden');
     if ($('transactions-list')) $('transactions-list').replaceChildren();
     if ($('budget-list')) $('budget-list').replaceChildren();
+    if ($('member-spending-grid')) $('member-spending-grid').replaceChildren();
     renderBudgetDropdowns();
     switchView('dashboard');
   }
@@ -364,6 +359,7 @@ window.switchView = (viewName) => {
 
   function selectBudget(id) {
     state.selected = id;
+    state.memberNames = [];
     const b = getBudget(id);
     state.offset = b ? thisPeriod(b) : 0;
     if ($('selected-budget')) $('selected-budget').value = id;
@@ -374,11 +370,64 @@ window.switchView = (viewName) => {
     refresh();
   }
 
+  function renderMemberSpending(b, records) {
+    const grid = $('member-spending-grid');
+    if (!grid || !b) return;
+    grid.replaceChildren();
+
+    const currentUserLabel = state.user.user_metadata?.first_name || state.user.email || 'Meg';
+    const totalsByMember = new Map();
+
+    const addMember = label => {
+      const clean = (label || '').trim();
+      if (!clean) return;
+      if (!totalsByMember.has(clean)) totalsByMember.set(clean, 0);
+    };
+
+    if (b.owner_id === state.user.id) {
+      addMember(currentUserLabel);
+    }
+    for (const memberName of state.memberNames) {
+      addMember(memberName);
+    }
+
+    const budgetRecords = records.filter(t => t.budget_id === b.id);
+    for (const t of budgetRecords) {
+      const memberLabel = t.actor_name
+        || (t.user_id === state.user.id ? currentUserLabel : 'Medlem');
+      totalsByMember.set(memberLabel, (totalsByMember.get(memberLabel) || 0) + Number(t.amount));
+    }
+
+    if (!totalsByMember.size) {
+      const empty = document.createElement('p');
+      empty.className = 'hint';
+      empty.textContent = 'Ingen medlemmer eller betalinger registrert i denne perioden.';
+      grid.append(empty);
+      return;
+    }
+
+    const sortedMembers = [...totalsByMember.entries()].sort((a, bEntry) => bEntry[1] - aEntry[1]);
+    sortedMembers.forEach(([memberLabel, sum], idx) => {
+      const card = document.createElement('div');
+      card.className = `member-stat-card${idx === 0 ? ' highlight' : ''}`;
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'stat-label';
+      labelEl.textContent = memberLabel;
+
+      const valueEl = document.createElement('span');
+      valueEl.className = 'stat-value';
+      valueEl.textContent = money(sum);
+
+      card.append(labelEl, valueEl);
+      grid.append(card);
+    });
+  }
+
   function displayDetail(b, records) {
     if (!$('budget-detail')) return;
     $('budget-detail').classList.toggle('hidden', !b);
 
-    // Kan dele alle budsjetter som brukeren eier
     const canShare = Boolean(b && b.owner_id === state.user.id);
     if ($('share-outside-box')) $('share-outside-box').classList.toggle('hidden', !canShare);
     if (!canShare && $('share-input-drawer')) $('share-input-drawer').classList.add('hidden');
@@ -393,17 +442,22 @@ window.switchView = (viewName) => {
     if ($('budget-balance')) {
       $('budget-balance').textContent = `${money(spent)} av ${money(Number(b.amount_limit))} · ${money(Number(b.amount_limit) - spent)} igjen`;
     }
-    if (canShare) loadMembers(b);
+    renderMemberSpending(b, records);
   }
 
   async function loadMembers(b) {
+    if (!b) return;
     const { data, error } = await db.from('budget_members').select('display_name').eq('budget_id', b.id);
     if (state.selected !== b.id) return;
+    if (!error && Array.isArray(data)) {
+      state.memberNames = data.map(m => m.display_name).filter(Boolean);
+    }
     if ($('member-list')) {
       $('member-list').textContent = error
         ? `Kunne ikke hente medlemmer: ${error.message}`
         : `Delt med: ${data.length ? data.map(m => m.display_name).join(', ') : 'ingen ennå'}`;
     }
+    await refresh();
   }
 
   function displayTransactions(records, selected) {
@@ -490,11 +544,20 @@ window.switchView = (viewName) => {
     });
 
     try {
-      const [cycleRows, periodRows] = await Promise.all([
+      const [cycleRows, periodRows, membersRes] = await Promise.all([
         fetchPeriod(cycle.start, nextDate(cycle.end)),
-        chosen ? fetchPeriod(chosen.start, nextDate(chosen.end), b.id) : Promise.resolve([])
+        chosen ? fetchPeriod(chosen.start, nextDate(chosen.end), b.id) : Promise.resolve([]),
+        b ? db.from('budget_members').select('display_name').eq('budget_id', b.id) : Promise.resolve({ data: [], error: null })
       ]);
       if (revision !== state.revision) return;
+
+      if (b && !membersRes.error && Array.isArray(membersRes.data)) {
+        state.memberNames = membersRes.data.map(m => m.display_name).filter(Boolean);
+        if ($('member-list')) {
+          $('member-list').textContent = `Delt med: ${state.memberNames.length ? state.memberNames.join(', ') : 'ingen ennå'}`;
+        }
+      }
+
       displayDashboard(cycleRows, cycle);
       displayDetail(b, periodRows);
       displayTransactions(b ? periodRows : cycleRows, Boolean(b));
