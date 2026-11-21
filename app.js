@@ -406,7 +406,7 @@ window.switchView = (viewName) => {
       return;
     }
 
-    const sortedMembers = [...totalsByMember.entries()].sort((a, bEntry) => bEntry[1] - aEntry[1]);
+    const sortedMembers = [...totalsByMember.entries()].sort((a, b) => b[1] - a[1]);
     sortedMembers.forEach(([memberLabel, sum], idx) => {
       const card = document.createElement('div');
       card.className = `member-stat-card${idx === 0 ? ' highlight' : ''}`;
