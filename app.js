@@ -525,7 +525,7 @@ window.switchView = viewName => {
     await refresh();
   }
 
-  function displayTransactions(records, selected) {
+function displayTransactions(records, selected) {
     const list = $('transactions-list');
     if (!list) return;
     list.replaceChildren();
@@ -564,7 +564,6 @@ window.switchView = viewName => {
       const right = document.createElement('div');
       right.className = 'row-right';
 
-      // Den som ikke har lagt ut for et felles utlegg kan huke av på "Vippset?"
       if (isShared && !isOwnTx) {
         const label = document.createElement('label');
         label.className = 'vipps-toggle';
@@ -572,24 +571,27 @@ window.switchView = viewName => {
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = settled;
+
+        const txt = document.createElement('span');
+        txt.textContent = settled ? 'Vippset' : 'Vippset?';
+
         cb.addEventListener('change', async () => {
           cb.disabled = true;
+          txt.textContent = cb.checked ? 'Vippset' : 'Vippset?';
           const ok = await toggleTransactionVippset(t.id, cb.checked);
           if (!ok) {
             cb.checked = !cb.checked;
+            txt.textContent = cb.checked ? 'Vippset' : 'Vippset?';
             cb.disabled = false;
           }
         });
 
-        const txt = document.createElement('span');
-        txt.textContent = 'Vippset?';
-
         label.append(cb, txt);
         right.append(label);
-      } else if (isShared && isOwnTx && settled) {
+      } else if (isShared && settled) {
         const badge = document.createElement('span');
         badge.className = 'vipps-settled-badge';
-        badge.textContent = 'Vippset ✓';
+        badge.textContent = 'Vippset';
         right.append(badge);
       }
 
@@ -602,7 +604,6 @@ window.switchView = viewName => {
       list.append(li);
     }
   }
-
 function otherMemberName(tx) {
     const meta = state.user?.user_metadata || {};
     const myFirst = (meta.first_name || '').trim().toLowerCase();
@@ -672,42 +673,6 @@ function displayDashboard(records, yearVal, monthVal) {
       }
     }
 
-    const debtList = $('debt-summary-list');
-    if (debtList) {
-      debtList.replaceChildren();
-      const rows = [];
-
-      for (const [debtor, sum] of owedToMeByPerson.entries()) {
-        if (sum > 0) {
-          rows.push({
-            text: `${debtor} skylder:`,
-            amount: money(sum)
-          });
-        }
-      }
-
-      for (const [creditor, sum] of iOweByPerson.entries()) {
-        if (sum > 0) {
-          rows.push({
-            text: `Du skylder ${creditor}:`,
-            amount: money(sum)
-          });
-        }
-      }
-
-      if (!rows.length) {
-        const li = document.createElement('li');
-        li.textContent = 'Ingen utestående gjeld i denne perioden.';
-        debtList.append(li);
-      } else {
-        for (const r of rows) {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${r.text}</span><strong class="amount">${r.amount}</strong>`;
-          debtList.append(li);
-        }
-      }
-    }
-
     const sums = new Map();
     for (const t of records) sums.set(t.category, (sums.get(t.category) || 0) + Number(t.amount));
 
@@ -726,7 +691,6 @@ function displayDashboard(records, yearVal, monthVal) {
       list.append(li);
     }
   }
-
   async function refresh() {
     if (!state.user) return;
     const revision = ++state.revision;
