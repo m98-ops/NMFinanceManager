@@ -37,10 +37,10 @@ window.switchView = viewName => {
   const today = () => dateString(new Date());
   const monthLabel = mStr => monthNames.find(([v]) => v === mStr)?.[1] || mStr;
 
-  const formatMonthYearFromDate = dateStr => {
+  const formatDDMM = dateStr => {
     if (!dateStr) return '';
-    const [y, m] = dateStr.slice(0, 10).split('-');
-    return `${monthLabel(m)} ${y}`;
+    const [, m, d] = dateStr.slice(0, 10).split('-');
+    return `${d}/${m}`;
   };
 
   const cycleRangeFromYearMonth = (yearStr, monthStr) => {
@@ -557,7 +557,7 @@ window.switchView = viewName => {
     return label;
   }
 
-  function displayTransactions(records, selected) {
+  function displayTransactions(records) {
     const list = $('transactions-list');
     if (!list) return;
     list.replaceChildren();
@@ -570,33 +570,27 @@ window.switchView = viewName => {
 
     for (const t of records) {
       const li = document.createElement('li');
-      const b = getBudget(t.budget_id);
-      const isSharedAccount = isSharedAccountTx(t);
       const canVipps = isDebtEligibleTx(t);
       const isOwnTx = t.user_id === state.user?.id;
-      const halfShare = Number(t.amount) / 2;
       const settled = Boolean(t.is_vippset);
+      const noteText = (t.description || '').trim();
 
-      const info = document.createElement('div');
+      const topLine = document.createElement('div');
+      topLine.className = 'tx-top-line';
+
       const title = document.createElement('strong');
-      title.textContent = t.store_name;
+      title.className = 'tx-main-title';
+      title.textContent = `${t.store_name} - ${formatDDMM(t.purchase_date)}`;
 
-      const meta = document.createElement('small');
-      meta.className = 'row-meta';
-      meta.textContent = [
-        formatMonthYearFromDate(t.purchase_date),
-        t.category,
-        isSharedAccount ? 'Felles konto' : (canVipps ? `Utlegg (50/50: ${money(halfShare)})` : 'Ikke felles konto'),
-        b && !selected ? b.name : null,
-        (isSharedAccount || canVipps) ? `Lagt ut av ${t.actor_name || 'deltaker'}` : null,
-        t.description
-      ].filter(Boolean).join(' · ');
+      const amount = document.createElement('strong');
+      amount.className = 'amount';
+      amount.textContent = money(Number(t.amount));
 
-      info.append(title, meta);
+      topLine.append(title, amount);
+      li.append(topLine);
 
       const right = document.createElement('div');
       right.className = 'row-right';
-
       if (canVipps && !isOwnTx) {
         right.append(createVippsCheckbox(t));
       } else if (canVipps && settled) {
@@ -606,12 +600,18 @@ window.switchView = viewName => {
         right.append(badge);
       }
 
-      const amount = document.createElement('strong');
-      amount.className = 'amount';
-      amount.textContent = money(Number(t.amount));
-      right.append(amount);
+      if (noteText || right.childNodes.length) {
+        const bottomLine = document.createElement('div');
+        bottomLine.className = 'tx-bottom-line';
 
-      li.append(info, right);
+        const note = document.createElement('span');
+        note.className = 'tx-note-text';
+        note.textContent = noteText;
+
+        bottomLine.append(note, right);
+        li.append(bottomLine);
+      }
+
       list.append(li);
     }
   }
@@ -642,29 +642,26 @@ window.switchView = viewName => {
 
     for (const t of debtItems) {
       const li = document.createElement('li');
-      const b = getBudget(t.budget_id);
       const isOwnTx = t.user_id === state.user?.id;
       const halfShare = Number(t.amount) / 2;
-      const partner = otherMemberName(t);
+      const noteText = (t.description || '').trim();
 
-      const info = document.createElement('div');
+      const topLine = document.createElement('div');
+      topLine.className = 'tx-top-line';
+
       const title = document.createElement('strong');
-      title.textContent = t.store_name;
+      title.className = 'tx-main-title';
+      title.textContent = `${t.store_name} - ${formatDDMM(t.purchase_date)}`;
 
-      const meta = document.createElement('small');
-      meta.className = 'row-meta';
-      meta.textContent = [
-        formatMonthYearFromDate(t.purchase_date),
-        b?.name || null,
-        isOwnTx ? `${partner} sin andel: ${money(halfShare)}` : `Din andel: ${money(halfShare)}`,
-        `Lagt ut av ${t.actor_name || (isOwnTx ? 'deg' : partner)}`
-      ].filter(Boolean).join(' · ');
+      const amount = document.createElement('strong');
+      amount.className = 'amount';
+      amount.textContent = money(halfShare);
 
-      info.append(title, meta);
+      topLine.append(title, amount);
+      li.append(topLine);
 
       const right = document.createElement('div');
       right.className = 'row-right';
-
       if (!isOwnTx) {
         right.append(createVippsCheckbox(t));
       } else if (t.is_vippset) {
@@ -674,12 +671,18 @@ window.switchView = viewName => {
         right.append(badge);
       }
 
-      const amount = document.createElement('strong');
-      amount.className = 'amount';
-      amount.textContent = money(halfShare);
-      right.append(amount);
+      if (noteText || right.childNodes.length) {
+        const bottomLine = document.createElement('div');
+        bottomLine.className = 'tx-bottom-line';
 
-      li.append(info, right);
+        const note = document.createElement('span');
+        note.className = 'tx-note-text';
+        note.textContent = noteText;
+
+        bottomLine.append(note, right);
+        li.append(bottomLine);
+      }
+
       itemsList.append(li);
     }
   }
@@ -786,7 +789,7 @@ window.switchView = viewName => {
       displayDashboard(cycleRows, yearVal, monthVal);
       displayDebtView(cycleRows, yearVal, monthVal);
       displayDetail(b, periodRows);
-      displayTransactions(b ? periodRows : cycleRows, Boolean(b));
+      displayTransactions(b ? periodRows : cycleRows);
     } catch (err) {
       if (revision === state.revision) status(`Kunne ikke hente betalinger: ${err.message}`);
     }

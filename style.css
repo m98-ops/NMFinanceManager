@@ -137,7 +137,7 @@ a,
 .nav-dropdown-btn:hover { color: var(--ink); }
 .nav-dropdown-btn[aria-expanded="true"] .material-icons-outlined { transform: rotate(180deg); }
 
-/* Mobil bunn-navigasjon (< 768px) flyttet 50% ned igjen */
+/* Mobil bunn-navigasjon (< 768px) */
 .mobile-bottom-nav {
   position: fixed;
   left: 0;
@@ -191,7 +191,6 @@ a,
   font-weight: 700;
 }
 
-/* Sentrert mørk sirkel med pluss-tegn i bunnmenyen */
 .bottom-nav-center-btn {
   width: 50px;
   height: 50px;
@@ -218,12 +217,10 @@ a,
   transform: scale(0.96);
 }
 
-/* Skjul hurtigknapper for registrering på mobil siden + ligger i bunnmenyen */
 .desktop-only-btn {
   display: none !important;
 }
 
-/* Pil til venstre uten ramme */
 .arrow-toggle-plain {
   background: none;
   border: none;
@@ -346,7 +343,6 @@ a,
 
 .btn-text:hover { color: var(--ink); background: var(--bg-subtle); }
 
-/* Mobil header med god klaring under iPhone Dynamic Island / topp */
 .mobile-header {
   display: flex;
   justify-content: space-between;
@@ -371,7 +367,6 @@ a,
   justify-content: flex-end;
 }
 
-/* Hovedinnhold & kort */
 .main-content {
   flex: 1;
   width: 100%;
@@ -508,7 +503,6 @@ h3 { margin: 14px 0 8px; font-size: 0.95rem; color: var(--secondary); font-weigh
 .btn-secondary-action .material-icons-outlined { font-size: 18px; }
 .share-input-drawer { margin-top: 10px; }
 
-/* Like høye felter */
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .input-group { display: flex; flex-direction: column; gap: 4px; }
 label { font-size: 0.8rem; font-weight: 600; color: var(--secondary); }
@@ -578,13 +572,9 @@ select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3p
 }
 
 .refresh-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-}
-
-.refresh-btn .material-icons-outlined {
-  font-size: 18px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  line-height: 1.2;
 }
 
 /* Dashboard & kort */
@@ -654,26 +644,26 @@ select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3p
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--ink);
   background: var(--bg-subtle);
   border: 1px solid var(--border);
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: 999px;
   cursor: pointer;
   user-select: none;
 }
 
 .vipps-toggle input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   accent-color: var(--primary);
   cursor: pointer;
 }
 
 .vipps-settled-badge {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: var(--secondary);
 }
@@ -698,6 +688,43 @@ select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3p
 .rows { list-style: none; padding: 0; margin: 8px 0 0; }
 .rows li { padding: 11px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .rows li:last-child { border-bottom: none; }
+
+/* Ryddig betaling-/utleggsrad etter skissen */
+.tx-clean-list li {
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 2px;
+}
+
+.tx-top-line {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.tx-main-title {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.tx-bottom-line {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tx-note-text {
+  color: var(--secondary);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .row-meta { color: var(--secondary); font-size: 0.8rem; display: block; margin-top: 2px; }
 .row-meta.indented { padding-left: 24px; }
 .row-right { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
