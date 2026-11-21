@@ -603,6 +603,25 @@ window.switchView = viewName => {
     }
   }
 
+function otherMemberName(tx) {
+    const meta = state.user?.user_metadata || {};
+    const myFirst = (meta.first_name || '').trim().toLowerCase();
+    const myFull = [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim().toLowerCase();
+    const myEmail = (state.user?.email || '').trim().toLowerCase();
+    const isMe = lbl => {
+      const k = (lbl || '').trim().toLowerCase();
+      return k && (k === myFirst || k === myFull || k === myEmail);
+    };
+
+    const otherFromMembers = state.memberNames.find(n => n && !isMe(n));
+    if (otherFromMembers) return otherFromMembers.trim();
+
+    const actor = (tx?.actor_name || '').trim();
+    if (actor && !isMe(actor)) return actor;
+
+    return 'Den andre deltakeren';
+  }
+
   function displayDashboard(records, yearVal, monthVal) {
     const sumScope = scope => records.filter(t => t.payment_scope === scope).reduce((n, t) => n + Number(t.amount), 0);
     if ($('personal-total')) $('personal-total').textContent = money(sumScope('personal'));
@@ -619,7 +638,7 @@ window.switchView = viewName => {
 
       const half = Number(t.amount) / 2;
       if (t.user_id === state.user?.id) {
-        const debtor = state.memberNames.length === 1 ? state.memberNames[0] : 'Den andre deltakeren';
+        const debtor = otherMemberName(t);
         owedToMeByPerson.set(debtor, (owedToMeByPerson.get(debtor) || 0) + half);
       } else {
         const creditor = (t.actor_name || '').trim() || 'Deltaker';
@@ -632,19 +651,19 @@ window.switchView = viewName => {
       debtList.replaceChildren();
       const rows = [];
 
-      for (const [creditor, sum] of iOweByPerson.entries()) {
+      for (const [debtor, sum] of owedToMeByPerson.entries()) {
         if (sum > 0) {
           rows.push({
-            text: `Du skylder ${creditor} (50 % av ikke-vippsede utlegg)`,
+            text: `${debtor} skylder:`,
             amount: money(sum)
           });
         }
       }
 
-      for (const [debtor, sum] of owedToMeByPerson.entries()) {
+      for (const [creditor, sum] of iOweByPerson.entries()) {
         if (sum > 0) {
           rows.push({
-            text: `${debtor} skylder deg (50 % av felles utlegg)`,
+            text: `Du skylder ${creditor}:`,
             amount: money(sum)
           });
         }
