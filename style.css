@@ -300,18 +300,24 @@ body {
   color: var(--primary);
 }
 
-/* --- MOBIL HEADER & HAMBORGER-DRAWER (< 768px) --- */
+/* --- MOBIL HEADER & HAMBURGER-DRAWER (< 768px) --- */
 .mobile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  padding-left: 2px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  margin-left: -4px;
+}
+
+.hamburger-btn {
+  margin-left: 0;
 }
 
 .mobile-header h1 {
@@ -387,6 +393,10 @@ body {
   margin: 0 auto;
 }
 
+.mobile-stage {
+  padding-top: 26px;
+}
+
 .auth-wrapper {
   width: 100%;
   flex: 1;
@@ -446,6 +456,12 @@ body {
 
 .view-content.active {
   display: block;
+}
+
+.budget-toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .card {
@@ -541,7 +557,7 @@ h3 {
   border-top: 1px solid var(--border);
 }
 
-/* --- DELING UTENFOR BOKS --- */
+/* --- DELING / NYTT BUDSJETT KNAPP --- */
 .outside-share-panel {
   margin-top: 10px;
   padding: 6px 2px;
@@ -763,7 +779,7 @@ select:focus {
 .rows {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 8px 0 0;
 }
 
 .rows li {
@@ -873,6 +889,10 @@ select:focus {
   .mobile-drawer,
   .drawer-backdrop {
     display: none !important;
+  }
+
+  .mobile-stage {
+    padding-top: 0;
   }
 
   .main-content {

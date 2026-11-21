@@ -122,7 +122,7 @@
     <!-- Mobile Header (vises kun når innlogget på < 768px) -->
     <header id="mobile-header" class="mobile-header hidden">
       <div class="header-left">
-        <button id="hamburger-btn" type="button" class="btn-icon" aria-label="Åpne meny">
+        <button id="hamburger-btn" type="button" class="btn-icon hamburger-btn" aria-label="Åpne meny">
           <span class="material-icons-outlined">menu</span>
         </button>
         <h1>NM Finance</h1>
@@ -182,7 +182,7 @@
 
     <!-- APP SECTION -->
     <section id="app-section" class="view-section hidden">
-      <div class="content-center">
+      <div class="content-center mobile-stage">
         <p id="app-message" class="message hidden" role="status"></p>
 
         <!-- DASHBOARD VIEW -->
@@ -221,12 +221,20 @@
 
         <!-- BUDGETS VIEW -->
         <div id="view-budgets" class="view-content hidden">
-          <div class="card">
+          <div class="budget-toolbar">
+            <button id="toggle-new-budget-btn" type="button" class="btn-secondary-action">
+              <span class="material-icons-outlined">add</span>
+              <span>+ Nytt budsjett</span>
+            </button>
+          </div>
+
+          <!-- Egen boks for opprett/endre budsjett (skjult til man trykker + Nytt budsjett eller Endre) -->
+          <div id="new-budget-drawer" class="card hidden">
             <div class="card-header-row">
               <h2 id="budget-form-title">Opprett nytt budsjett</h2>
               <div class="header-actions-inline">
                 <button id="set-25-cycle-btn" type="button" class="btn-chip">Bruk 25. – 25.</button>
-                <button id="cancel-edit-budget-btn" type="button" class="btn-chip hidden">Avbryt endring</button>
+                <button id="close-budget-drawer-btn" type="button" class="btn-chip">Lukk</button>
               </div>
             </div>
             <form id="budget-form" class="modern-form">
@@ -259,8 +267,12 @@
               </div>
               <button id="budget-submit-btn" type="submit" class="btn-primary">Opprett budsjett</button>
             </form>
+          </div>
 
-            <h3 class="section-divider">Dine budsjetter</h3>
+          <!-- Egen boks over eksisterende budsjetter man eier eller er medlem i -->
+          <div class="card">
+            <h2>Dine budsjetter</h2>
+            <p class="hint">Budsjetter du eier eller er medlem i.</p>
             <ul id="budget-list" class="rows"></ul>
           </div>
         </div>

@@ -166,13 +166,17 @@ window.switchView = (viewName) => {
     if ($('budget-end')) $('budget-end').value = range.end;
   }
 
-  function resetBudgetFormToCreate() {
+  function setBudgetDrawerOpen(open) {
+    $('new-budget-drawer')?.classList.toggle('hidden', !open);
+  }
+
+  function resetBudgetFormToCreate(closeDrawer = false) {
     state.editingBudgetId = null;
     $('budget-form')?.reset();
     apply25CycleToBudgetForm();
     if ($('budget-form-title')) $('budget-form-title').textContent = 'Opprett nytt budsjett';
     if ($('budget-submit-btn')) $('budget-submit-btn').textContent = 'Opprett budsjett';
-    $('cancel-edit-budget-btn')?.classList.add('hidden');
+    if (closeDrawer) setBudgetDrawerOpen(false);
   }
 
   function startEditingBudget(budgetId) {
@@ -186,7 +190,7 @@ window.switchView = (viewName) => {
     if ($('budget-type')) $('budget-type').value = b.kind;
     if ($('budget-form-title')) $('budget-form-title').textContent = `Endre budsjett: ${b.name}`;
     if ($('budget-submit-btn')) $('budget-submit-btn').textContent = 'Lagre endringer';
-    $('cancel-edit-budget-btn')?.classList.remove('hidden');
+    setBudgetDrawerOpen(true);
     switchView('budgets');
     $('budget-name')?.focus();
   }
@@ -209,7 +213,7 @@ window.switchView = (viewName) => {
     }
 
     if (state.editingBudgetId === b.id) {
-      resetBudgetFormToCreate();
+      resetBudgetFormToCreate(true);
     }
     if (state.selected === b.id) {
       state.selected = '';
@@ -320,6 +324,7 @@ window.switchView = (viewName) => {
     document.body.classList.remove('is-authenticated');
     setDrawerOpen(false);
     setBudgetDropdownOpen(false);
+    setBudgetDrawerOpen(false);
     $('auth-section')?.classList.remove('hidden');
     $('app-section')?.classList.add('hidden');
     $('mobile-header')?.classList.add('hidden');
@@ -391,7 +396,7 @@ window.switchView = (viewName) => {
     list.replaceChildren();
     if (!state.budgets.length) {
       const li = document.createElement('li');
-      li.textContent = 'Ingen budsjetter ennå. Opprett ett over.';
+      li.textContent = 'Ingen budsjetter ennå. Trykk «+ Nytt budsjett» over for å opprette ett.';
       list.append(li);
       return;
     }
@@ -409,7 +414,8 @@ window.switchView = (viewName) => {
       const r = period(b, thisPeriod(b));
       const meta = document.createElement('small');
       meta.className = 'row-meta';
-      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${formatDateNO(r.start)} – ${formatDateNO(r.end)}`;
+      const roleLabel = b.owner_id === state.user?.id ? 'Eier' : 'Medlem';
+      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${roleLabel} · ${formatDateNO(r.start)} – ${formatDateNO(r.end)}`;
       content.append(button, meta);
 
       const rightBox = document.createElement('div');
@@ -723,6 +729,24 @@ window.switchView = (viewName) => {
       setBudgetDropdownOpen(!expanded, 'mobile');
     });
 
+    $('toggle-new-budget-btn')?.addEventListener('click', () => {
+      const drawer = $('new-budget-drawer');
+      if (!drawer) return;
+      const willOpen = drawer.classList.contains('hidden');
+      if (willOpen) {
+        resetBudgetFormToCreate(false);
+        setBudgetDrawerOpen(true);
+        $('budget-name')?.focus();
+      } else {
+        resetBudgetFormToCreate(true);
+      }
+    });
+
+    $('close-budget-drawer-btn')?.addEventListener('click', () => {
+      resetBudgetFormToCreate(true);
+      clearStatus();
+    });
+
     $('toggle-share-input-btn')?.addEventListener('click', () => {
       const drawer = $('share-input-drawer');
       if (!drawer) return;
@@ -738,11 +762,6 @@ window.switchView = (viewName) => {
 
     $('delete-selected-budget-btn')?.addEventListener('click', () => {
       if (state.selected) deleteBudgetById(state.selected);
-    });
-
-    $('cancel-edit-budget-btn')?.addEventListener('click', () => {
-      resetBudgetFormToCreate();
-      clearStatus();
     });
 
     $('tab-login')?.addEventListener('click', () => {
@@ -849,7 +868,7 @@ window.switchView = (viewName) => {
           .eq('created_by', state.user.id);
 
         if (error) return status(`Kunne ikke oppdatere budsjett: ${error.message}`);
-        resetBudgetFormToCreate();
+        resetBudgetFormToCreate(true);
         await loadBudgets();
         status('Budsjettet er oppdatert.', 'success');
         switchView('budgets');
@@ -862,7 +881,7 @@ window.switchView = (viewName) => {
       }).select('id').single();
 
       if (error) return status(`Kunne ikke opprette budsjett: ${error.message}`);
-      resetBudgetFormToCreate();
+      resetBudgetFormToCreate(true);
       await loadBudgets();
       selectBudget(data.id);
       status('Budsjettet er opprettet.', 'success');
