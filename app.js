@@ -294,6 +294,7 @@ window.switchView = viewName => {
     $('transactions-list')?.replaceChildren();
     $('budget-list')?.replaceChildren();
     $('member-spending-grid')?.replaceChildren();
+    $('debt-items-list')?.replaceChildren();
     renderBudgetDropdowns();
     window.switchView('dashboard');
   }
@@ -442,6 +443,7 @@ window.switchView = viewName => {
 
   // Betalt fra felles konto = ingen Vipps-avsjekk og ingen gjeld
   const isSharedAccountTx = t => t.payment_scope === 'shared';
+  const isDebtEligibleTx = t => !isSharedAccountTx(t) && getBudget(t.budget_id)?.kind === 'shared';
 
   function otherMemberName(tx) {
     const meta = state.user?.user_metadata || {};
@@ -539,6 +541,33 @@ window.switchView = viewName => {
     await refresh();
   }
 
+  function createVippsCheckbox(t) {
+    const settled = Boolean(t.is_vippset);
+    const label = document.createElement('label');
+    label.className = 'vipps-toggle';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = settled;
+
+    const txt = document.createElement('span');
+    txt.textContent = settled ? 'Vippset' : 'Vippset?';
+
+    cb.addEventListener('change', async () => {
+      cb.disabled = true;
+      txt.textContent = cb.checked ? 'Vippset' : 'Vippset?';
+      const ok = await toggleTransactionVippset(t.id, cb.checked);
+      if (!ok) {
+        cb.checked = !cb.checked;
+        txt.textContent = cb.checked ? 'Vippset' : 'Vippset?';
+        cb.disabled = false;
+      }
+    });
+
+    label.append(cb, txt);
+    return label;
+  }
+
   function displayTransactions(records, selected) {
     const list = $('transactions-list');
     if (!list) return;
@@ -554,9 +583,8 @@ window.switchView = viewName => {
       const li = document.createElement('li');
       const b = getBudget(t.budget_id);
       const isSharedAccount = isSharedAccountTx(t);
-      const isSharedBudget = b?.kind === 'shared';
+      const canVipps = isDebtEligibleTx(t);
       const isOwnTx = t.user_id === state.user?.id;
-      const canVipps = !isSharedAccount && isSharedBudget;
       const halfShare = Number(t.amount) / 2;
       const settled = Boolean(t.is_vippset);
 
@@ -580,31 +608,8 @@ window.switchView = viewName => {
       const right = document.createElement('div');
       right.className = 'row-right';
 
-      // Kun når det IKKE er betalt fra felles konto, og den andre deltakeren har lagt ut
       if (canVipps && !isOwnTx) {
-        const label = document.createElement('label');
-        label.className = 'vipps-toggle';
-
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = settled;
-
-        const txt = document.createElement('span');
-        txt.textContent = settled ? 'Vippset' : 'Vippset?';
-
-        cb.addEventListener('change', async () => {
-          cb.disabled = true;
-          txt.textContent = cb.checked ? 'Vippset' : 'Vippset?';
-          const ok = await toggleTransactionVippset(t.id, cb.checked);
-          if (!ok) {
-            cb.checked = !cb.checked;
-            txt.textContent = cb.checked ? 'Vippset' : 'Vippset?';
-            cb.disabled = false;
-          }
-        });
-
-        label.append(cb, txt);
-        right.append(label);
+        right.append(createVippsCheckbox(t));
       } else if (canVipps && settled) {
         const badge = document.createElement('span');
         badge.className = 'vipps-settled-badge';
@@ -622,6 +627,74 @@ window.switchView = viewName => {
     }
   }
 
+  function displayDebtView(records, yearVal, monthVal) {
+    const itemsList = $('debt-items-list');
+    if (!itemsList) return;
+    itemsList.replaceChildren();
+
+    if ($('debt-view-subtitle')) {
+      $('debt-view-subtitle').textContent = `Periode: ${monthLabel(monthVal)} ${yearVal} · Utlegg utenfor felles konto (50/50-andel).`;
+    }
+
+    const debtItems = records.filter(t => isDebtEligibleTx(t));
+    const unsettledShareSum = debtItems
+      .filter(t => !t.is_vippset)
+      .reduce((sum, t) => sum + Number(t.amount) / 2, 0);
+
+    if ($('debt-view-summary-label')) $('debt-view-summary-label').textContent = 'Ikke vippset (50/50)';
+    if ($('debt-view-summary-amount')) $('debt-view-summary-amount').textContent = money(unsettledShareSum);
+
+    if (!debtItems.length) {
+      const li = document.createElement('li');
+      li.textContent = 'Ingen utlegg som gir gjeld i denne perioden.';
+      itemsList.append(li);
+      return;
+    }
+
+    for (const t of debtItems) {
+      const li = document.createElement('li');
+      const b = getBudget(t.budget_id);
+      const isOwnTx = t.user_id === state.user?.id;
+      const halfShare = Number(t.amount) / 2;
+      const partner = otherMemberName(t);
+
+      const info = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = t.store_name;
+
+      const meta = document.createElement('small');
+      meta.className = 'row-meta';
+      meta.textContent = [
+        formatMonthYearFromDate(t.purchase_date),
+        b?.name || null,
+        isOwnTx ? `${partner} sin andel: ${money(halfShare)}` : `Din andel: ${money(halfShare)}`,
+        `Lagt ut av ${t.actor_name || (isOwnTx ? 'deg' : partner)}`
+      ].filter(Boolean).join(' · ');
+
+      info.append(title, meta);
+
+      const right = document.createElement('div');
+      right.className = 'row-right';
+
+      if (!isOwnTx) {
+        right.append(createVippsCheckbox(t));
+      } else if (t.is_vippset) {
+        const badge = document.createElement('span');
+        badge.className = 'vipps-settled-badge';
+        badge.textContent = 'Vippset';
+        right.append(badge);
+      }
+
+      const amount = document.createElement('strong');
+      amount.className = 'amount';
+      amount.textContent = money(halfShare);
+      right.append(amount);
+
+      li.append(info, right);
+      itemsList.append(li);
+    }
+  }
+
   function displayDashboard(records, yearVal, monthVal) {
     const sharedAccountTotal = records
       .filter(t => isSharedAccountTx(t))
@@ -630,14 +703,11 @@ window.switchView = viewName => {
     if ($('shared-total')) $('shared-total').textContent = money(sharedAccountTotal);
     if ($('dashboard-cycle-label')) $('dashboard-cycle-label').textContent = `${monthLabel(monthVal)} ${yearVal}`;
 
-    // Kun utlegg som IKKE er betalt fra felles konto (og ikke er vippset) gir gjeld
     const owedToMeByPerson = new Map();
     const iOweByPerson = new Map();
 
     for (const t of records) {
-      if (isSharedAccountTx(t)) continue;
-      const b = getBudget(t.budget_id);
-      if (b?.kind !== 'shared') continue;
+      if (!isDebtEligibleTx(t)) continue;
       if (t.is_vippset) continue;
 
       const half = Number(t.amount) / 2;
@@ -725,6 +795,7 @@ window.switchView = viewName => {
       }
 
       displayDashboard(cycleRows, yearVal, monthVal);
+      displayDebtView(cycleRows, yearVal, monthVal);
       displayDetail(b, periodRows);
       displayTransactions(b ? periodRows : cycleRows, Boolean(b));
     } catch (err) {
@@ -740,6 +811,14 @@ window.switchView = viewName => {
 
     document.querySelectorAll('.nav-item[data-view]').forEach(item => {
       item.addEventListener('click', e => { e.preventDefault(); window.switchView(item.dataset.view); });
+    });
+
+    $('debt-box-card')?.addEventListener('click', () => window.switchView('debt'));
+    $('debt-box-card')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        window.switchView('debt');
+      }
     });
 
     $('dashboard-register-btn')?.addEventListener('click', () => goToRegister(state.selected));
