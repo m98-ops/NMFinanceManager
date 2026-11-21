@@ -228,6 +228,12 @@
                 <span id="shared-total" class="stat-value">0,00 kr</span>
               </div>
             </div>
+
+            <div class="debt-section">
+              <h3>Gjeld og oppgjør (50/50 på felles utlegg)</h3>
+              <ul id="debt-summary-list" class="rows"></ul>
+            </div>
+
             <h3>Forbruk per kategori</h3>
             <ul id="category-totals" class="rows"></ul>
           </div>
@@ -239,6 +245,10 @@
             <button id="toggle-new-budget-btn" type="button" class="btn-secondary-action">
               <span class="material-icons-outlined">add</span>
               <span>Nytt budsjett</span>
+            </button>
+            <button id="budgets-register-btn" type="button" class="btn-primary btn-register-quick">
+              <span class="material-icons-outlined">add</span>
+              <span>Registrer</span>
             </button>
           </div>
 
@@ -293,7 +303,7 @@
         <div id="view-register" class="view-content hidden">
           <div class="card">
             <h2>Registrer betaling</h2>
-            <p class="hint">Utlegg i budsjetter følger månedsperiodene.</p>
+            <p class="hint">Utlegg i felles budsjetter deles på 2 (50/50).</p>
             <form id="transaction-form" class="modern-form">
               <div class="input-group">
                 <label for="trans-budget">Budsjett / Liste</label>
@@ -302,11 +312,11 @@
               <div class="grid-2">
                 <div class="input-group">
                   <label for="trans-store">Butikk / Mottaker</label>
-                  <input id="trans-store" required maxlength="120" placeholder="Rema 1000">
+                  <input id="trans-store" required maxlength="120" placeholder="Coop">
                 </div>
                 <div class="input-group">
                   <label for="trans-amount">Beløp (kr)</label>
-                  <input id="trans-amount" type="number" step="0.01" min="0.01" required placeholder="150.00">
+                  <input id="trans-amount" type="number" step="0.01" min="0.01" required placeholder="100.00">
                 </div>
               </div>
               <div class="grid-2">
@@ -339,17 +349,24 @@
         <div id="view-history" class="view-content hidden">
           <div class="card">
             <div class="budget-selector-wrapper">
-              <div class="selected-budget-title-block">
-                <div class="title-with-arrow">
-                  <button id="selected-budget-actions-toggle" type="button" class="arrow-toggle-plain hidden" aria-expanded="false" aria-controls="selected-budget-actions-menu" title="Flere valg">
-                    <span class="material-icons-outlined">expand_more</span>
-                  </button>
-                  <h2>Valgt budsjett</h2>
+              <div class="history-top-bar">
+                <div class="selected-budget-title-block">
+                  <div class="title-with-arrow">
+                    <button id="selected-budget-actions-toggle" type="button" class="arrow-toggle-plain hidden" aria-expanded="false" aria-controls="selected-budget-actions-menu" title="Flere valg">
+                      <span class="material-icons-outlined">expand_more</span>
+                    </button>
+                    <h2>Valgt budsjett</h2>
+                  </div>
+                  <div id="selected-budget-actions-menu" class="budget-actions-under hidden">
+                    <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
+                    <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
+                  </div>
                 </div>
-                <div id="selected-budget-actions-menu" class="budget-actions-under hidden">
-                  <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
-                  <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
-                </div>
+
+                <button id="history-register-btn" type="button" class="btn-primary btn-register-quick">
+                  <span class="material-icons-outlined">add</span>
+                  <span>Registrer</span>
+                </button>
               </div>
 
               <label for="selected-budget">Budsjett</label>

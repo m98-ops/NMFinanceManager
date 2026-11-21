@@ -94,16 +94,45 @@ window.switchView = viewName => {
   };
   const getBudget = id => state.budgets.find(b => b.id === id);
 
+  // Varsler med maks 10 sekunders varighet
+  const statusTimers = new Map();
+
+  function clearStatus(target = 'app-message') {
+    const timer = statusTimers.get(target);
+    if (timer) {
+      clearTimeout(timer);
+      statusTimers.delete(target);
+    }
+    const el = $(target);
+    if (el) {
+      el.textContent = '';
+      el.className = 'message hidden';
+    }
+  }
+
   function status(text, type = 'error', target = 'app-message') {
     const el = $(target);
     if (!el) return;
+    clearStatus(target);
     el.textContent = text;
     el.className = `message ${type}`;
+    statusTimers.set(target, setTimeout(() => clearStatus(target), 10000));
   }
 
-  function clearStatus(target = 'app-message') {
-    const el = $(target);
-    if (el) { el.textContent = ''; el.className = 'message hidden'; }
+  async function toggleTransactionVippset(txId, checked) {
+    if (!txId || !state.user) return false;
+    const { error } = await db
+      .from('transactions')
+      .update({ is_vippset: checked })
+      .eq('id', txId);
+
+    if (error) {
+      status(`Kunne ikke oppdatere Vipps-status: ${error.message}`);
+      return false;
+    }
+    status(checked ? 'Markert som vippset.' : 'Vipps-markering fjernet.', 'success');
+    await refresh();
+    return true;
   }
 
   function syncUserDisplay() {
@@ -131,6 +160,13 @@ window.switchView = viewName => {
       }
     } catch (_) {}
     window.switchView('profile');
+  }
+
+  function goToRegister(preselectBudgetId = '') {
+    if (preselectBudgetId && $('trans-budget')) {
+      $('trans-budget').value = preselectBudgetId;
+    }
+    window.switchView('register');
   }
 
   function populateDateSelects() {
@@ -260,6 +296,7 @@ window.switchView = viewName => {
     $('transactions-list')?.replaceChildren();
     $('budget-list')?.replaceChildren();
     $('member-spending-grid')?.replaceChildren();
+    $('debt-summary-list')?.replaceChildren();
     renderBudgetDropdowns();
     window.switchView('dashboard');
   }
@@ -406,6 +443,11 @@ window.switchView = viewName => {
     refresh();
   }
 
+  function isSharedBudgetTx(t) {
+    const b = getBudget(t.budget_id);
+    return t.payment_scope === 'shared' || b?.kind === 'shared';
+  }
+
   function renderMemberSpending(b, records) {
     const grid = $('member-spending-grid');
     if (!grid || !b) return;
@@ -462,7 +504,7 @@ window.switchView = viewName => {
     if ($('previous-period')) $('previous-period').disabled = state.offset === 0;
 
     const spent = records
-      .filter(t => t.budget_id === b.id && (t.payment_scope === 'shared' || t.user_id === state.user.id))
+      .filter(t => t.budget_id === b.id && (isSharedBudgetTx(t) || t.user_id === state.user.id))
       .reduce((sum, t) => sum + Number(t.amount), 0);
     const limit = Number(b.amount_limit);
     if ($('budget-balance')) $('budget-balance').textContent = `${money(spent)} / ${money(limit)}`;
@@ -493,18 +535,70 @@ window.switchView = viewName => {
       list.append(li);
       return;
     }
+
     for (const t of records) {
       const li = document.createElement('li');
       const b = getBudget(t.budget_id);
-      const meta = [
+      const isShared = isSharedBudgetTx(t);
+      const isOwnTx = t.user_id === state.user?.id;
+      const halfShare = Number(t.amount) / 2;
+      const settled = Boolean(t.is_vippset);
+
+      const info = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = t.store_name;
+
+      const meta = document.createElement('small');
+      meta.className = 'row-meta';
+      meta.textContent = [
         formatMonthYearFromDate(t.purchase_date),
         t.category,
-        t.payment_scope === 'shared' ? 'Felles' : 'Personlig',
+        isShared ? `Felles (din andel: ${money(halfShare)})` : 'Personlig',
         b && !selected ? b.name : null,
-        t.payment_scope === 'shared' ? `Registrert av ${t.actor_name}` : null,
+        isShared ? `Lagt ut av ${t.actor_name || 'deltaker'}` : null,
         t.description
       ].filter(Boolean).join(' · ');
-      li.innerHTML = `<div><strong>${t.store_name}</strong><small class="row-meta">${meta}</small></div><strong class="amount">${money(Number(t.amount))}</strong>`;
+
+      info.append(title, meta);
+
+      const right = document.createElement('div');
+      right.className = 'row-right';
+
+      // Den som ikke har lagt ut for et felles utlegg kan huke av på "Vippset?"
+      if (isShared && !isOwnTx) {
+        const label = document.createElement('label');
+        label.className = 'vipps-toggle';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = settled;
+        cb.addEventListener('change', async () => {
+          cb.disabled = true;
+          const ok = await toggleTransactionVippset(t.id, cb.checked);
+          if (!ok) {
+            cb.checked = !cb.checked;
+            cb.disabled = false;
+          }
+        });
+
+        const txt = document.createElement('span');
+        txt.textContent = 'Vippset?';
+
+        label.append(cb, txt);
+        right.append(label);
+      } else if (isShared && isOwnTx && settled) {
+        const badge = document.createElement('span');
+        badge.className = 'vipps-settled-badge';
+        badge.textContent = 'Vippset ✓';
+        right.append(badge);
+      }
+
+      const amount = document.createElement('strong');
+      amount.className = 'amount';
+      amount.textContent = money(Number(t.amount));
+      right.append(amount);
+
+      li.append(info, right);
       list.append(li);
     }
   }
@@ -514,6 +608,60 @@ window.switchView = viewName => {
     if ($('personal-total')) $('personal-total').textContent = money(sumScope('personal'));
     if ($('shared-total')) $('shared-total').textContent = money(sumScope('shared'));
     if ($('dashboard-cycle-label')) $('dashboard-cycle-label').textContent = `${monthLabel(monthVal)} ${yearVal}`;
+
+    // Beregn 50/50-gjeld i felles budsjetter (utenom det som er markert som vippset)
+    const owedToMeByPerson = new Map();
+    const iOweByPerson = new Map();
+
+    for (const t of records) {
+      if (!isSharedBudgetTx(t)) continue;
+      if (t.is_vippset) continue;
+
+      const half = Number(t.amount) / 2;
+      if (t.user_id === state.user?.id) {
+        const debtor = state.memberNames.length === 1 ? state.memberNames[0] : 'Den andre deltakeren';
+        owedToMeByPerson.set(debtor, (owedToMeByPerson.get(debtor) || 0) + half);
+      } else {
+        const creditor = (t.actor_name || '').trim() || 'Deltaker';
+        iOweByPerson.set(creditor, (iOweByPerson.get(creditor) || 0) + half);
+      }
+    }
+
+    const debtList = $('debt-summary-list');
+    if (debtList) {
+      debtList.replaceChildren();
+      const rows = [];
+
+      for (const [creditor, sum] of iOweByPerson.entries()) {
+        if (sum > 0) {
+          rows.push({
+            text: `Du skylder ${creditor} (50 % av ikke-vippsede utlegg)`,
+            amount: money(sum)
+          });
+        }
+      }
+
+      for (const [debtor, sum] of owedToMeByPerson.entries()) {
+        if (sum > 0) {
+          rows.push({
+            text: `${debtor} skylder deg (50 % av felles utlegg)`,
+            amount: money(sum)
+          });
+        }
+      }
+
+      if (!rows.length) {
+        const li = document.createElement('li');
+        li.textContent = 'Ingen utestående gjeld i denne perioden.';
+        debtList.append(li);
+      } else {
+        for (const r of rows) {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${r.text}</span><strong class="amount">${r.amount}</strong>`;
+          debtList.append(li);
+        }
+      }
+    }
 
     const sums = new Map();
     for (const t of records) sums.set(t.category, (sums.get(t.category) || 0) + Number(t.amount));
@@ -543,7 +691,7 @@ window.switchView = viewName => {
     const monthVal = $('dashboard-month')?.value || active.month;
     const cycle = cycleRangeFromYearMonth(yearVal, monthVal);
     const chosen = b && period(b, state.offset);
-    const fields = 'id,user_id,budget_id,store_name,amount,category,payment_scope,actor_name,description,purchase_date,created_at';
+    const fields = 'id,user_id,budget_id,store_name,amount,category,payment_scope,actor_name,description,purchase_date,created_at,is_vippset';
     const fetchPeriod = (start, end, budgetId) => fetchAll('transactions', fields, q => {
       q = q.gte('purchase_date', start).lt('purchase_date', end).order('purchase_date', { ascending: false }).order('created_at', { ascending: false });
       return budgetId ? q.eq('budget_id', budgetId) : q;
@@ -580,10 +728,9 @@ window.switchView = viewName => {
       item.addEventListener('click', e => { e.preventDefault(); window.switchView(item.dataset.view); });
     });
 
-    $('dashboard-register-btn')?.addEventListener('click', () => {
-      if (state.selected && $('trans-budget')) $('trans-budget').value = state.selected;
-      window.switchView('register');
-    });
+    $('dashboard-register-btn')?.addEventListener('click', () => goToRegister(state.selected));
+    $('budgets-register-btn')?.addEventListener('click', () => goToRegister(state.selected));
+    $('history-register-btn')?.addEventListener('click', () => goToRegister(state.selected));
 
     ['open-profile-sidebar', 'open-profile-mobile', 'open-profile-header'].forEach(id => $(id)?.addEventListener('click', openProfileView));
 
@@ -770,7 +917,8 @@ window.switchView = viewName => {
         description: $('trans-desc').value.trim() || null,
         purchase_date: $('trans-date').value,
         category: $('trans-category').value,
-        payment_scope: $('trans-scope').value
+        payment_scope: $('trans-scope').value,
+        is_vippset: false
       });
       if (error) return status(`Kunne ikke lagre betaling: ${error.message}`);
       $('transaction-form').reset();
