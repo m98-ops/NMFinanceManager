@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>NM Finance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
@@ -219,9 +222,9 @@
             </div>
 
             <div class="stats-grid">
-              <div class="stat-card primary">
-                <span class="stat-label">Mine betalinger</span>
-                <span id="personal-total" class="stat-value">0,00 kr</span>
+              <div id="debt-box-card" class="stat-card primary debt-highlight-card">
+                <span id="debt-box-label" class="stat-label">Skylder</span>
+                <span id="debt-box-value" class="stat-value">0,00 kr</span>
               </div>
               <div class="stat-card secondary">
                 <span class="stat-label">Felles betalinger</span>

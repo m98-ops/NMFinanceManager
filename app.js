@@ -622,9 +622,8 @@ function otherMemberName(tx) {
     return 'Den andre deltakeren';
   }
 
-  function displayDashboard(records, yearVal, monthVal) {
+function displayDashboard(records, yearVal, monthVal) {
     const sumScope = scope => records.filter(t => t.payment_scope === scope).reduce((n, t) => n + Number(t.amount), 0);
-    if ($('personal-total')) $('personal-total').textContent = money(sumScope('personal'));
     if ($('shared-total')) $('shared-total').textContent = money(sumScope('shared'));
     if ($('dashboard-cycle-label')) $('dashboard-cycle-label').textContent = `${monthLabel(monthVal)} ${yearVal}`;
 
@@ -643,6 +642,33 @@ function otherMemberName(tx) {
       } else {
         const creditor = (t.actor_name || '').trim() || 'Deltaker';
         iOweByPerson.set(creditor, (iOweByPerson.get(creditor) || 0) + half);
+      }
+    }
+
+    const totalOwedToMe = [...owedToMeByPerson.values()].reduce((s, v) => s + v, 0);
+    const totalIOwe = [...iOweByPerson.values()].reduce((s, v) => s + v, 0);
+    const firstDebtor = [...owedToMeByPerson.entries()].find(([, v]) => v > 0)?.[0];
+    const firstCreditor = [...iOweByPerson.entries()].find(([, v]) => v > 0)?.[0];
+
+    if ($('debt-box-label') && $('debt-box-value')) {
+      if (totalOwedToMe > 0 && totalIOwe === 0) {
+        $('debt-box-label').textContent = `${firstDebtor || 'Kjæresten'} skylder`;
+        $('debt-box-value').textContent = money(totalOwedToMe);
+      } else if (totalIOwe > 0 && totalOwedToMe === 0) {
+        $('debt-box-label').textContent = `Du skylder ${firstCreditor || 'kjæresten'}`;
+        $('debt-box-value').textContent = money(totalIOwe);
+      } else if (totalOwedToMe > 0 || totalIOwe > 0) {
+        const net = totalOwedToMe - totalIOwe;
+        if (net >= 0) {
+          $('debt-box-label').textContent = `${firstDebtor || 'Kjæresten'} skylder (netto)`;
+          $('debt-box-value').textContent = money(net);
+        } else {
+          $('debt-box-label').textContent = `Du skylder ${firstCreditor || 'kjæresten'} (netto)`;
+          $('debt-box-value').textContent = money(Math.abs(net));
+        }
+      } else {
+        $('debt-box-label').textContent = 'Gjeld / oppgjør';
+        $('debt-box-value').textContent = money(0);
       }
     }
 
