@@ -363,34 +363,47 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-/* --- HOVEDINNHOLD & AUTH-LAYOUT --- */
+/* --- HOVEDINNHOLD & SENTRERING --- */
 .main-content {
   flex: 1;
   width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
   padding: 14px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+}
+
+#app-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content-center {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
 }
 
 .auth-wrapper {
   width: 100%;
+  flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 8px;
+  min-height: calc(100dvh - 28px);
 }
 
 .auth-card {
   width: 100%;
   max-width: 420px;
-  padding: 18px 20px;
+  padding: 20px 22px;
   margin-bottom: 0;
 }
 
 .auth-brand {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--primary);
   text-align: center;
@@ -445,6 +458,34 @@ body {
 
 .card:last-child {
   margin-bottom: 0;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.card-header-row h2 {
+  margin-bottom: 0;
+}
+
+.btn-chip {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-chip:hover {
+  background: #dbeafe;
 }
 
 h2 {
@@ -545,30 +586,47 @@ select:focus {
   cursor: not-allowed;
 }
 
-/* --- OVERSIKT & KORT --- */
+/* --- OVERSIKT & ÅR/MÅNED NEDTREKKSMENY --- */
 .summary-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .summary-header h2 {
-  margin-bottom: 0;
+  margin-bottom: 2px;
 }
 
-.month-picker-wrapper {
+.cycle-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.date-dropdowns {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.mini-input {
+.select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.select-group label {
+  font-size: 0.72rem;
+}
+
+.mini-select {
   width: auto;
-  padding: 6px 8px;
+  min-width: 92px;
+  padding: 6px 10px;
   font-size: 0.85rem;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .stats-grid {
@@ -732,7 +790,8 @@ select:focus {
   }
 
   .auth-wrapper {
-    padding-top: 24px;
+    min-height: calc(100dvh - 40px);
+    align-items: center;
   }
 
   .grid-2 {

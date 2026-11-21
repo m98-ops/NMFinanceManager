@@ -13,10 +13,12 @@ window.switchView = (viewName) => {
 
   document.querySelectorAll('.view-content').forEach(c => {
     c.classList.remove('active');
+    c.classList.add('hidden');
   });
 
   const target = document.getElementById(`view-${viewName}`);
   if (target) {
+    target.classList.remove('hidden');
     target.classList.add('active');
   }
 
@@ -40,6 +42,21 @@ window.switchView = (viewName) => {
   const $ = id => document.getElementById(id);
 
   const categories = ['Mat', 'Bolig', 'Transport', 'Regninger', 'Helse', 'Fritid', 'Shopping', 'Sparing', 'Annet'];
+  const monthNames = [
+    { value: '01', label: 'Januar' },
+    { value: '02', label: 'Februar' },
+    { value: '03', label: 'Mars' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'Mai' },
+    { value: '06', label: 'Juni' },
+    { value: '07', label: 'Juli' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'Oktober' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'Desember' }
+  ];
+
   const money = value => `${new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} kr`;
   const dateString = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -51,8 +68,32 @@ window.switchView = (viewName) => {
   };
   const nextDate = s => { const d = parseDate(s); d.setDate(d.getDate() + 1); return dateString(d); };
   const today = () => dateString(new Date());
-  const monthlyRange = month => ({ start: `${month}-01`, end: shiftMonth(`${month}-01`, 1) });
-  const period = (budget, offset) => ({ start: shiftMonth(budget.first_start, offset), end: shiftMonth(budget.first_end, offset) });
+
+  // 25. - 25. syklus for valgt år og måned (f.eks. 2026-11-25 til 2026-12-25)
+  const cycleRangeFromYearMonth = (yearStr, monthStr) => {
+    const year = Number(yearStr);
+    const monthIndex = Number(monthStr) - 1;
+    const start = dateString(new Date(year, monthIndex, 25));
+    const end = dateString(new Date(year, monthIndex + 1, 25));
+    return { start, end };
+  };
+
+  // Standard 25. - 25. periode som starter i inneværende syklus
+  const default25Cycle = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const startMonth = now.getDate() >= 25 ? m : m - 1;
+    const start = dateString(new Date(y, startMonth, 25));
+    const end = dateString(new Date(y, startMonth + 1, 25));
+    return { start, end };
+  };
+
+  const period = (budget, offset) => ({
+    start: shiftMonth(budget.first_start, offset),
+    end: shiftMonth(budget.first_end, offset)
+  });
+
   const thisPeriod = budget => {
     const now = new Date();
     const anchor = parseDate(budget.first_start);
@@ -78,6 +119,37 @@ window.switchView = (viewName) => {
       el.textContent = '';
       el.className = 'message hidden';
     }
+  }
+
+  function populateYearAndMonthSelects() {
+    const yearSelect = $('dashboard-year');
+    const monthSelect = $('dashboard-month');
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const activeCycleMonth = now.getDate() >= 25 ? now.getMonth() : (now.getMonth() + 11) % 12;
+    const activeCycleYear = now.getDate() >= 25 ? currentYear : (now.getMonth() === 0 ? currentYear - 1 : currentYear);
+
+    if (yearSelect) {
+      yearSelect.replaceChildren();
+      for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+        yearSelect.add(new Option(String(y), String(y)));
+      }
+      yearSelect.value = String(activeCycleYear);
+    }
+
+    if (monthSelect) {
+      monthSelect.replaceChildren();
+      for (const m of monthNames) {
+        monthSelect.add(new Option(m.label, m.value));
+      }
+      monthSelect.value = String(activeCycleMonth + 1).padStart(2, '0');
+    }
+  }
+
+  function apply25CycleToBudgetForm() {
+    const { start, end } = default25Cycle();
+    if ($('budget-start')) $('budget-start').value = start;
+    if ($('budget-end')) $('budget-end').value = end;
   }
 
   function setDrawerOpen(open) {
@@ -251,7 +323,7 @@ window.switchView = (viewName) => {
     list.replaceChildren();
     if (!state.budgets.length) {
       const li = document.createElement('li');
-      li.textContent = 'Ingen budsjetter ennå.';
+      li.textContent = 'Ingen budsjetter ennå. Opprett ett over.';
       list.append(li);
       return;
     }
@@ -354,11 +426,14 @@ window.switchView = (viewName) => {
     }
   }
 
-  function displayDashboard(records) {
+  function displayDashboard(records, cycleRange) {
     const personal = records.filter(t => t.payment_scope === 'personal');
     const shared = records.filter(t => t.payment_scope === 'shared');
     if ($('personal-total')) $('personal-total').textContent = money(personal.reduce((n, t) => n + Number(t.amount), 0));
     if ($('shared-total')) $('shared-total').textContent = money(shared.reduce((n, t) => n + Number(t.amount), 0));
+    if ($('dashboard-cycle-label')) {
+      $('dashboard-cycle-label').textContent = `Syklus (25. – 25.): ${cycleRange.start} – ${cycleRange.end}`;
+    }
 
     const sums = new Map();
     for (const t of records) sums.set(t.category, (sums.get(t.category) || 0) + Number(t.amount));
@@ -368,7 +443,7 @@ window.switchView = (viewName) => {
     list.replaceChildren();
     if (!sums.size) {
       const li = document.createElement('li');
-      li.textContent = 'Ingen betalinger denne måneden.';
+      li.textContent = 'Ingen betalinger i denne 25.–25.-perioden.';
       list.append(li);
       return;
     }
@@ -387,7 +462,10 @@ window.switchView = (viewName) => {
     if (!state.user) return;
     const revision = ++state.revision;
     const b = getBudget(state.selected);
-    const month = monthlyRange($('dashboard-month')?.value || today().slice(0, 7));
+    const now = new Date();
+    const yearVal = $('dashboard-year')?.value || String(now.getFullYear());
+    const monthVal = $('dashboard-month')?.value || String(now.getMonth() + 1).padStart(2, '0');
+    const cycle = cycleRangeFromYearMonth(yearVal, monthVal);
     const chosen = b && period(b, state.offset);
     const fields = 'id,user_id,budget_id,store_name,amount,category,payment_scope,actor_name,description,purchase_date,created_at';
     const fetchPeriod = (start, end, budgetId) => fetchAll('transactions', fields, q => {
@@ -396,27 +474,23 @@ window.switchView = (viewName) => {
     });
 
     try {
-      const [monthRows, periodRows] = await Promise.all([
-        fetchPeriod(month.start, month.end),
+      const [cycleRows, periodRows] = await Promise.all([
+        fetchPeriod(cycle.start, nextDate(cycle.end)),
         chosen ? fetchPeriod(chosen.start, nextDate(chosen.end), b.id) : Promise.resolve([])
       ]);
       if (revision !== state.revision) return;
-      displayDashboard(monthRows);
+      displayDashboard(cycleRows, cycle);
       displayDetail(b, periodRows);
-      displayTransactions(b ? periodRows : monthRows, Boolean(b));
+      displayTransactions(b ? periodRows : cycleRows, Boolean(b));
     } catch (err) {
       if (revision === state.revision) status(`Kunne ikke hente betalinger: ${err.message}`);
     }
   }
 
   function initialize() {
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-    if ($('dashboard-month')) $('dashboard-month').value = currentMonth;
+    populateYearAndMonthSelects();
+    apply25CycleToBudgetForm();
     if ($('trans-date')) $('trans-date').value = today();
-    if ($('budget-start')) $('budget-start').value = today();
-    if ($('budget-end')) $('budget-end').value = dateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
     if ($('trans-category')) {
       for (const category of categories) $('trans-category').add(new Option(category, category));
@@ -541,13 +615,18 @@ window.switchView = (viewName) => {
     $('logout-btn-sidebar')?.addEventListener('click', handleLogout);
     $('logout-btn-mobile')?.addEventListener('click', handleLogout);
 
+    $('set-25-cycle-btn')?.addEventListener('click', () => {
+      apply25CycleToBudgetForm();
+      status('Start- og sluttdato er satt til 25. – 25.', 'success');
+    });
+
     $('budget-form')?.addEventListener('submit', async event => {
       event.preventDefault();
       clearStatus();
       const start = $('budget-start').value;
       const end = $('budget-end').value;
-      if (!start || !end || end < start || end >= shiftMonth(start, 1)) {
-        return status('Sluttdato må være etter startdato og før neste måneds start.');
+      if (!start || !end || end <= start) {
+        return status('Sluttdato må være etter startdato.');
       }
       const { data, error } = await db.from('budgets').insert({
         created_by: state.user.id,
@@ -560,8 +639,7 @@ window.switchView = (viewName) => {
 
       if (error) return status(`Kunne ikke opprette budsjett: ${error.message}`);
       $('budget-form').reset();
-      $('budget-start').value = today();
-      $('budget-end').value = dateString(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0));
+      apply25CycleToBudgetForm();
       await loadBudgets();
       selectBudget(data.id);
       status('Budsjettet er opprettet.', 'success');
@@ -572,6 +650,7 @@ window.switchView = (viewName) => {
     $('trans-budget')?.addEventListener('change', updateScope);
     $('previous-period')?.addEventListener('click', () => { state.offset = Math.max(0, state.offset - 1); refresh(); });
     $('next-period')?.addEventListener('click', () => { state.offset++; refresh(); });
+    $('dashboard-year')?.addEventListener('change', refresh);
     $('dashboard-month')?.addEventListener('change', refresh);
 
     $('share-form')?.addEventListener('submit', async event => {
