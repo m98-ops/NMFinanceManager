@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://kisbhsvduwbsnxkggnbasupabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_ORGirBg15o4cPqdVEtefoQ_uOmcB6do';
+const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_NO14aKeYWxfzU5xpKxSc-w_7UpD7909';
 
 // Global funksjon for å bytte view
 window.switchView = (viewName) => {
