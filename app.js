@@ -68,12 +68,6 @@ window.switchView = (viewName) => {
     return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
   };
 
-  const shiftMonth = (s, shift) => {
-    const d = parseDate(s);
-    const first = new Date(d.getFullYear(), d.getMonth() + shift, 1);
-    const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-    return dateString(new Date(first.getFullYear(), first.getMonth(), Math.min(d.getDate(), last)));
-  };
   const nextDate = s => { const d = parseDate(s); d.setDate(d.getDate() + 1); return dateString(d); };
   const today = () => dateString(new Date());
 
@@ -101,18 +95,28 @@ window.switchView = (viewName) => {
     };
   };
 
-  const period = (budget, offset) => ({
-    start: shiftMonth(budget.first_start, offset),
-    end: shiftMonth(budget.first_end, offset)
-  });
+  // Budsjettperiode fra 25. til 25., forankret på første 25.-periode fra start_date
+  const anchor25MonthIndex = budget => {
+    const d = parseDate(budget.first_start);
+    // Hvis startdatoen er etter den 25. i måneden, starter første 25.-periode i neste måned
+    const firstEndMonthIdx = d.getDate() > 25 ? (d.getFullYear() * 12 + d.getMonth() + 1) : (d.getFullYear() * 12 + d.getMonth());
+    return firstEndMonthIdx;
+  };
+
+  const period = (budget, offset) => {
+    const endMonthTotal = anchor25MonthIndex(budget) + offset;
+    const endYear = Math.floor(endMonthTotal / 12);
+    const endMonthIdx = endMonthTotal % 12;
+    return {
+      start: dateString(new Date(endYear, endMonthIdx - 1, 25)),
+      end: dateString(new Date(endYear, endMonthIdx, 25))
+    };
+  };
 
   const thisPeriod = budget => {
-    const anchor = parseDate(budget.first_start);
-    const now = new Date();
-    let offset = (now.getFullYear() - anchor.getFullYear()) * 12 + now.getMonth() - anchor.getMonth();
-    if (offset < 0) return 0;
-    if (period(budget, offset).start > today()) offset--;
-    return Math.max(0, offset);
+    const active = activeForwardCycle();
+    const activeEndMonthTotal = active.year * 12 + (Number(active.month) - 1);
+    return Math.max(0, activeEndMonthTotal - anchor25MonthIndex(budget));
   };
 
   const state = { user: null, budgets: [], selected: '', offset: 0, revision: 0 };
@@ -245,12 +249,9 @@ window.switchView = (viewName) => {
 
   function updateScope() {
     const b = getBudget($('trans-budget')?.value);
-    const shared = b?.kind === 'shared';
     const scopeSelect = $('trans-scope');
-    if (scopeSelect) {
-      const sharedOption = scopeSelect.querySelector('[value="shared"]');
-      if (sharedOption) sharedOption.disabled = !shared;
-      if (!shared) scopeSelect.value = 'personal';
+    if (scopeSelect && !b) {
+      scopeSelect.value = 'personal';
     }
   }
 
@@ -347,9 +348,10 @@ window.switchView = (viewName) => {
         selectBudget(b.id);
         switchView('history');
       });
+      const r = period(b, thisPeriod(b));
       const meta = document.createElement('small');
       meta.className = 'row-meta';
-      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${formatDateNO(b.first_start)} – ${formatDateNO(b.first_end)}`;
+      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${formatDateNO(r.start)} – ${formatDateNO(r.end)}`;
       content.append(button, meta);
 
       const amount = document.createElement('strong');
@@ -375,7 +377,9 @@ window.switchView = (viewName) => {
   function displayDetail(b, records) {
     if (!$('budget-detail')) return;
     $('budget-detail').classList.toggle('hidden', !b);
-    const canShare = Boolean(b && b.kind === 'shared' && b.owner_id === state.user.id);
+
+    // Kan dele alle budsjetter som brukeren eier
+    const canShare = Boolean(b && b.owner_id === state.user.id);
     if ($('share-outside-box')) $('share-outside-box').classList.toggle('hidden', !canShare);
     if (!canShare && $('share-input-drawer')) $('share-input-drawer').classList.add('hidden');
     if (!b) return;
@@ -702,7 +706,7 @@ window.switchView = (viewName) => {
       event.preventDefault();
       clearStatus();
       const b = getBudget($('trans-budget').value);
-      const scope = b?.kind === 'shared' ? $('trans-scope').value : 'personal';
+      const scope = $('trans-scope').value;
       if (b && $('trans-date').value < b.first_start) {
         return status('Betalingsdato er før budsjettets første periode.');
       }
