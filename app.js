@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://nbrqtupxrlrfhwodigou.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icnF0dXB4cmxyZmh3b2RpZ291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDU4NzIsImV4cCI6MjEwNTU4MTg3Mn0.FicNmSAkaDP1q0I70SlmD7iD3LZ52lMhFtNufPgjzQ0';
+const SUPABASE_URL = 'https://kisbhsvduwbsnxkggnbasupabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ORGirBg15o4cPqdVEtefoQ_uOmcB6do';
 
 // Global funksjon for å bytte view
 window.switchView = (viewName) => {
