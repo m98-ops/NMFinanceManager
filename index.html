@@ -12,7 +12,7 @@
 
 <div class="app-container">
 
-  <!-- SIDEBAR (iPad og større: >= 768px, vises kun når innlogget) -->
+  <!-- SIDEBAR (>= 768px) -->
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-top">
       <div class="brand">
@@ -25,14 +25,14 @@
     </div>
 
     <nav class="nav-menu" aria-label="Hovedmeny">
-      <a href="#" class="nav-item active" data-view="dashboard" title="Dashboard">
+      <a href="#" class="nav-item active" data-view="dashboard">
         <span class="material-icons-outlined">dashboard</span>
         <span class="nav-label">Dashboard</span>
       </a>
 
       <div class="nav-group">
         <div class="nav-item-row">
-          <a href="#" class="nav-item" data-view="budgets" title="Budsjetter">
+          <a href="#" class="nav-item" data-view="budgets">
             <span class="material-icons-outlined">account_balance_wallet</span>
             <span class="nav-label">Budsjetter</span>
           </a>
@@ -45,12 +45,12 @@
         </ul>
       </div>
 
-      <a href="#" class="nav-item" data-view="register" title="Registrer">
+      <a href="#" class="nav-item" data-view="register">
         <span class="material-icons-outlined">add_circle</span>
         <span class="nav-label">Registrer</span>
       </a>
 
-      <a href="#" class="nav-item" data-view="history" title="Historikk">
+      <a href="#" class="nav-item" data-view="history">
         <span class="material-icons-outlined">history</span>
         <span class="nav-label">Historikk</span>
       </a>
@@ -68,7 +68,7 @@
     </div>
   </aside>
 
-  <!-- MOBIL DRAWER & BACKDROP (< 768px) -->
+  <!-- MOBIL DRAWER (< 768px) -->
   <div id="mobile-drawer-backdrop" class="drawer-backdrop hidden"></div>
   <aside id="mobile-drawer" class="mobile-drawer hidden" aria-label="Mobilmeny">
     <div class="drawer-header">
@@ -125,7 +125,7 @@
   <!-- MAIN CONTENT -->
   <main class="main-content">
 
-    <!-- Mobile Header (vises kun når innlogget på < 768px) -->
+    <!-- Mobile Header -->
     <header id="mobile-header" class="mobile-header hidden">
       <div class="header-left">
         <button id="hamburger-btn" type="button" class="btn-icon hamburger-btn" aria-label="Åpne meny">
@@ -136,7 +136,7 @@
       <button id="open-profile-header" type="button" class="avatar-small" title="Åpne profil" aria-label="Åpne profil">👤</button>
     </header>
 
-    <!-- AUTH SECTION -->
+    <!-- AUTH -->
     <section id="auth-section" class="view-section auth-wrapper">
       <div class="card auth-card">
         <div class="auth-brand">NM Finance</div>
@@ -186,12 +186,12 @@
       </div>
     </section>
 
-    <!-- APP SECTION -->
+    <!-- APP -->
     <section id="app-section" class="view-section hidden">
       <div class="content-center mobile-stage">
         <p id="app-message" class="message hidden" role="status"></p>
 
-        <!-- DASHBOARD VIEW -->
+        <!-- DASHBOARD -->
         <div id="view-dashboard" class="view-content active">
           <div class="card summary-card">
             <div class="summary-header">
@@ -232,7 +232,7 @@
           </div>
         </div>
 
-        <!-- BUDGETS VIEW -->
+        <!-- BUDGETS -->
         <div id="view-budgets" class="view-content hidden">
           <div class="budget-toolbar">
             <button id="toggle-new-budget-btn" type="button" class="btn-secondary-action">
@@ -288,17 +288,15 @@
           </div>
         </div>
 
-        <!-- REGISTER VIEW -->
+        <!-- REGISTER -->
         <div id="view-register" class="view-content hidden">
           <div class="card">
             <h2>Registrer betaling</h2>
-            <p class="hint">Utlegg i budsjetter følger periodene 25. – 25.</p>
+            <p class="hint">Utlegg i budsjetter følger månedsperiodene.</p>
             <form id="transaction-form" class="modern-form">
               <div class="input-group">
                 <label for="trans-budget">Budsjett / Liste</label>
-                <select id="trans-budget">
-                  <option value="">Uten budsjett</option>
-                </select>
+                <select id="trans-budget"><option value="">Uten budsjett</option></select>
               </div>
               <div class="grid-2">
                 <div class="input-group">
@@ -336,27 +334,30 @@
           </div>
         </div>
 
-        <!-- HISTORY VIEW -->
+        <!-- HISTORY -->
         <div id="view-history" class="view-content hidden">
           <div class="card">
             <div class="budget-selector-wrapper">
               <div class="card-header-row">
                 <h2>Valgt budsjett</h2>
-                <div id="selected-budget-owner-actions" class="row-actions hidden">
-                  <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
-                  <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
+                <div id="selected-budget-owner-actions" class="owner-dropdown-wrap hidden">
+                  <button id="selected-budget-actions-toggle" type="button" class="btn-icon action-chevron-btn" aria-expanded="false" aria-controls="selected-budget-actions-menu" title="Flere valg">
+                    <span class="material-icons-outlined">expand_more</span>
+                  </button>
+                  <div id="selected-budget-actions-menu" class="action-popover hidden">
+                    <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
+                    <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
+                  </div>
                 </div>
               </div>
               <label for="selected-budget">Budsjett</label>
-              <select id="selected-budget">
-                <option value="">Velg budsjett</option>
-              </select>
+              <select id="selected-budget"><option value="">Velg budsjett</option></select>
             </div>
 
             <div id="budget-detail" class="hidden">
               <div class="period-controls">
                 <button id="previous-period" type="button" class="btn-icon">←</button>
-                <strong id="period-label">Periode</strong>
+                <strong id="period-label">November 2026</strong>
                 <button id="next-period" type="button" class="btn-icon">→</button>
               </div>
 
@@ -386,7 +387,6 @@
               </button>
               <span id="member-list" class="hint"></span>
             </div>
-
             <div id="share-input-drawer" class="share-input-drawer hidden">
               <form id="share-form" class="inline-form">
                 <input id="share-identifier" type="text" required placeholder="E-post eller brukernavn (flere skilles med komma)">
@@ -396,14 +396,13 @@
           </div>
         </div>
 
-        <!-- PROFILE VIEW -->
+        <!-- PROFILE -->
         <div id="view-profile" class="view-content hidden">
           <div class="card">
             <div class="card-header-row">
               <h2>Min profil</h2>
               <button type="button" class="btn-chip" onclick="switchView('dashboard')">Tilbake til dashboard</button>
             </div>
-
             <div class="profile-info-box">
               <div class="profile-row">
                 <span class="profile-key">E-post</span>
@@ -414,7 +413,6 @@
                 <code id="profile-id-display" class="profile-code">-</code>
               </div>
             </div>
-
             <form id="profile-form" class="modern-form">
               <div class="grid-2">
                 <div class="input-group">
