@@ -318,47 +318,29 @@ window.switchView = viewName => {
     list.replaceChildren();
     if (!state.budgets.length) {
       const li = document.createElement('li');
-      li.textContent = 'Ingen budsjetter ennå. Trykk «+ Nytt budsjett» over for å opprette ett.';
+      li.textContent = 'Ingen budsjetter ennå. Trykk «Nytt budsjett» over for å opprette ett.';
       list.append(li);
       return;
     }
 
     for (const b of state.budgets) {
+      const isOwner = b.owner_id === state.user?.id;
       const li = document.createElement('li');
       const content = document.createElement('div');
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'budget-button';
-      button.textContent = b.name;
-      button.addEventListener('click', () => { selectBudget(b.id); window.switchView('history'); });
+      const nameRow = document.createElement('div');
+      nameRow.className = 'budget-name-row';
 
-      const p = period(b, thisPeriod(b));
-      const meta = document.createElement('small');
-      meta.className = 'row-meta';
-      const roleLabel = b.owner_id === state.user?.id ? 'Eier' : 'Medlem';
-      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${roleLabel} · ${p.label}`;
-      content.append(button, meta);
-
-      const rightBox = document.createElement('div');
-      rightBox.className = 'row-right';
-      const amount = document.createElement('strong');
-      amount.className = 'amount';
-      amount.textContent = money(Number(b.amount_limit));
-      rightBox.append(amount);
-
-      if (b.owner_id === state.user?.id) {
-        const wrap = document.createElement('div');
-        wrap.className = 'owner-dropdown-wrap';
-
+      let actionsMenu = null;
+      if (isOwner) {
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
-        toggleBtn.className = 'btn-icon action-chevron-btn';
+        toggleBtn.className = 'arrow-toggle-plain';
         toggleBtn.setAttribute('aria-expanded', 'false');
         toggleBtn.title = 'Flere valg';
         toggleBtn.innerHTML = '<span class="material-icons-outlined">expand_more</span>';
 
-        const menu = document.createElement('div');
-        menu.className = 'action-popover hidden';
+        actionsMenu = document.createElement('div');
+        actionsMenu.className = 'budget-actions-under hidden';
 
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
@@ -372,21 +354,40 @@ window.switchView = viewName => {
         delBtn.textContent = 'Slett';
         delBtn.addEventListener('click', () => deleteBudgetById(b.id));
 
+        actionsMenu.append(editBtn, delBtn);
+
         toggleBtn.addEventListener('click', e => {
           e.stopPropagation();
-          const willOpen = menu.classList.contains('hidden');
-          document.querySelectorAll('.action-popover').forEach(pEl => pEl.classList.add('hidden'));
-          document.querySelectorAll('.action-chevron-btn').forEach(bEl => bEl.setAttribute('aria-expanded', 'false'));
-          toggleHidden(menu, !willOpen);
+          const willOpen = actionsMenu.classList.contains('hidden');
+          document.querySelectorAll('.budget-actions-under').forEach(el => el.classList.add('hidden'));
+          document.querySelectorAll('.arrow-toggle-plain').forEach(el => el.setAttribute('aria-expanded', 'false'));
+          toggleHidden(actionsMenu, !willOpen);
           toggleBtn.setAttribute('aria-expanded', String(willOpen));
         });
 
-        menu.append(editBtn, delBtn);
-        wrap.append(toggleBtn, menu);
-        rightBox.append(wrap);
+        nameRow.append(toggleBtn);
       }
 
-      li.append(content, rightBox);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'budget-button';
+      button.textContent = b.name;
+      button.addEventListener('click', () => { selectBudget(b.id); window.switchView('history'); });
+      nameRow.append(button);
+
+      const p = period(b, thisPeriod(b));
+      const meta = document.createElement('small');
+      meta.className = `row-meta${isOwner ? ' indented' : ''}`;
+      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${isOwner ? 'Eier' : 'Medlem'} · ${p.label}`;
+
+      content.append(nameRow, meta);
+      if (actionsMenu) content.append(actionsMenu);
+
+      const amount = document.createElement('strong');
+      amount.className = 'amount';
+      amount.textContent = money(Number(b.amount_limit));
+
+      li.append(content, amount);
       list.append(li);
     }
   }
@@ -448,7 +449,7 @@ window.switchView = viewName => {
     if (!$('budget-detail')) return;
     toggleHidden($('budget-detail'), !b);
     const isOwner = Boolean(b && b.owner_id === state.user.id);
-    toggleHidden($('selected-budget-owner-actions'), !isOwner);
+    toggleHidden($('selected-budget-actions-toggle'), !isOwner);
     toggleHidden($('share-outside-box'), !isOwner);
     if (!isOwner) {
       toggleHidden($('share-input-drawer'), true);
@@ -647,8 +648,8 @@ window.switchView = viewName => {
     });
 
     document.addEventListener('click', () => {
-      document.querySelectorAll('.action-popover').forEach(pEl => pEl.classList.add('hidden'));
-      document.querySelectorAll('.action-chevron-btn').forEach(bEl => bEl.setAttribute('aria-expanded', 'false'));
+      document.querySelectorAll('.budget-actions-under').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.arrow-toggle-plain').forEach(el => el.setAttribute('aria-expanded', 'false'));
     });
 
     $('toggle-new-budget-btn')?.addEventListener('click', () => {

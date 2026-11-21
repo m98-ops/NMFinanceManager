@@ -6,7 +6,8 @@
   <title>NM Finance</title>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
 
@@ -237,7 +238,7 @@
           <div class="budget-toolbar">
             <button id="toggle-new-budget-btn" type="button" class="btn-secondary-action">
               <span class="material-icons-outlined">add</span>
-              <span>+ Nytt budsjett</span>
+              <span>Nytt budsjett</span>
             </button>
           </div>
 
@@ -338,18 +339,19 @@
         <div id="view-history" class="view-content hidden">
           <div class="card">
             <div class="budget-selector-wrapper">
-              <div class="card-header-row">
-                <h2>Valgt budsjett</h2>
-                <div id="selected-budget-owner-actions" class="owner-dropdown-wrap hidden">
-                  <button id="selected-budget-actions-toggle" type="button" class="btn-icon action-chevron-btn" aria-expanded="false" aria-controls="selected-budget-actions-menu" title="Flere valg">
+              <div class="selected-budget-title-block">
+                <div class="title-with-arrow">
+                  <button id="selected-budget-actions-toggle" type="button" class="arrow-toggle-plain hidden" aria-expanded="false" aria-controls="selected-budget-actions-menu" title="Flere valg">
                     <span class="material-icons-outlined">expand_more</span>
                   </button>
-                  <div id="selected-budget-actions-menu" class="action-popover hidden">
-                    <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
-                    <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
-                  </div>
+                  <h2>Valgt budsjett</h2>
+                </div>
+                <div id="selected-budget-actions-menu" class="budget-actions-under hidden">
+                  <button id="edit-selected-budget-btn" type="button" class="btn-mini">Endre</button>
+                  <button id="delete-selected-budget-btn" type="button" class="btn-mini danger">Slett</button>
                 </div>
               </div>
+
               <label for="selected-budget">Budsjett</label>
               <select id="selected-budget"><option value="">Velg budsjett</option></select>
             </div>
@@ -439,6 +441,5 @@
 
 </div>
 
-<script src="app.js"></script>
 </body>
 </html>
