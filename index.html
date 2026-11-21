@@ -301,7 +301,7 @@
         <div id="view-register" class="view-content hidden">
           <div class="card">
             <h2>Registrer betaling</h2>
-            <p class="hint">Utlegg i felles budsjetter deles på 2 (50/50).</p>
+            <p class="hint">Utlegg utenfor felles konto i felles budsjetter deles på 2 (50/50).</p>
             <form id="transaction-form" class="modern-form">
               <div class="input-group">
                 <label for="trans-budget">Budsjett / Liste</label>
@@ -328,10 +328,10 @@
                 </div>
               </div>
               <div class="input-group">
-                <label for="trans-scope">Betalingstype</label>
-                <select id="trans-scope">
-                  <option value="personal">Personlig</option>
-                  <option value="shared">Felles</option>
+                <label for="trans-shared-account">Blir dette betalt fra felles konto?</label>
+                <select id="trans-shared-account">
+                  <option value="no">Nei</option>
+                  <option value="yes">Ja</option>
                 </select>
               </div>
               <div class="input-group">

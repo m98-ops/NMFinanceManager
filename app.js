@@ -94,7 +94,6 @@ window.switchView = viewName => {
   };
   const getBudget = id => state.budgets.find(b => b.id === id);
 
-  // Varsler med maks 10 sekunders varighet
   const statusTimers = new Map();
 
   function clearStatus(target = 'app-message') {
@@ -276,7 +275,6 @@ window.switchView = viewName => {
     }
     if ($('selected-budget')) $('selected-budget').value = state.selected;
     if ($('trans-budget')) $('trans-budget').value = state.selected || old;
-    if ($('trans-budget') && !$('trans-budget').value && $('trans-scope')) $('trans-scope').value = 'personal';
     renderBudgetDropdowns();
   }
 
@@ -296,7 +294,6 @@ window.switchView = viewName => {
     $('transactions-list')?.replaceChildren();
     $('budget-list')?.replaceChildren();
     $('member-spending-grid')?.replaceChildren();
-    $('debt-summary-list')?.replaceChildren();
     renderBudgetDropdowns();
     window.switchView('dashboard');
   }
@@ -443,9 +440,26 @@ window.switchView = viewName => {
     refresh();
   }
 
-  function isSharedBudgetTx(t) {
-    const b = getBudget(t.budget_id);
-    return t.payment_scope === 'shared' || b?.kind === 'shared';
+  // Betalt fra felles konto = ingen Vipps-avsjekk og ingen gjeld
+  const isSharedAccountTx = t => t.payment_scope === 'shared';
+
+  function otherMemberName(tx) {
+    const meta = state.user?.user_metadata || {};
+    const myFirst = (meta.first_name || '').trim().toLowerCase();
+    const myFull = [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim().toLowerCase();
+    const myEmail = (state.user?.email || '').trim().toLowerCase();
+    const isMe = lbl => {
+      const k = (lbl || '').trim().toLowerCase();
+      return k && (k === myFirst || k === myFull || k === myEmail);
+    };
+
+    const otherFromMembers = state.memberNames.find(n => n && !isMe(n));
+    if (otherFromMembers) return otherFromMembers.trim();
+
+    const actor = (tx?.actor_name || '').trim();
+    if (actor && !isMe(actor)) return actor;
+
+    return 'Den andre deltakeren';
   }
 
   function renderMemberSpending(b, records) {
@@ -504,7 +518,7 @@ window.switchView = viewName => {
     if ($('previous-period')) $('previous-period').disabled = state.offset === 0;
 
     const spent = records
-      .filter(t => t.budget_id === b.id && (isSharedBudgetTx(t) || t.user_id === state.user.id))
+      .filter(t => t.budget_id === b.id && (b.kind === 'shared' || t.user_id === state.user.id))
       .reduce((sum, t) => sum + Number(t.amount), 0);
     const limit = Number(b.amount_limit);
     if ($('budget-balance')) $('budget-balance').textContent = `${money(spent)} / ${money(limit)}`;
@@ -525,7 +539,7 @@ window.switchView = viewName => {
     await refresh();
   }
 
-function displayTransactions(records, selected) {
+  function displayTransactions(records, selected) {
     const list = $('transactions-list');
     if (!list) return;
     list.replaceChildren();
@@ -539,8 +553,10 @@ function displayTransactions(records, selected) {
     for (const t of records) {
       const li = document.createElement('li');
       const b = getBudget(t.budget_id);
-      const isShared = isSharedBudgetTx(t);
+      const isSharedAccount = isSharedAccountTx(t);
+      const isSharedBudget = b?.kind === 'shared';
       const isOwnTx = t.user_id === state.user?.id;
+      const canVipps = !isSharedAccount && isSharedBudget;
       const halfShare = Number(t.amount) / 2;
       const settled = Boolean(t.is_vippset);
 
@@ -553,9 +569,9 @@ function displayTransactions(records, selected) {
       meta.textContent = [
         formatMonthYearFromDate(t.purchase_date),
         t.category,
-        isShared ? `Felles (din andel: ${money(halfShare)})` : 'Personlig',
+        isSharedAccount ? 'Felles konto' : (canVipps ? `Utlegg (50/50: ${money(halfShare)})` : 'Ikke felles konto'),
         b && !selected ? b.name : null,
-        isShared ? `Lagt ut av ${t.actor_name || 'deltaker'}` : null,
+        (isSharedAccount || canVipps) ? `Lagt ut av ${t.actor_name || 'deltaker'}` : null,
         t.description
       ].filter(Boolean).join(' · ');
 
@@ -564,7 +580,8 @@ function displayTransactions(records, selected) {
       const right = document.createElement('div');
       right.className = 'row-right';
 
-      if (isShared && !isOwnTx) {
+      // Kun når det IKKE er betalt fra felles konto, og den andre deltakeren har lagt ut
+      if (canVipps && !isOwnTx) {
         const label = document.createElement('label');
         label.className = 'vipps-toggle';
 
@@ -588,7 +605,7 @@ function displayTransactions(records, selected) {
 
         label.append(cb, txt);
         right.append(label);
-      } else if (isShared && settled) {
+      } else if (canVipps && settled) {
         const badge = document.createElement('span');
         badge.className = 'vipps-settled-badge';
         badge.textContent = 'Vippset';
@@ -604,36 +621,23 @@ function displayTransactions(records, selected) {
       list.append(li);
     }
   }
-function otherMemberName(tx) {
-    const meta = state.user?.user_metadata || {};
-    const myFirst = (meta.first_name || '').trim().toLowerCase();
-    const myFull = [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim().toLowerCase();
-    const myEmail = (state.user?.email || '').trim().toLowerCase();
-    const isMe = lbl => {
-      const k = (lbl || '').trim().toLowerCase();
-      return k && (k === myFirst || k === myFull || k === myEmail);
-    };
 
-    const otherFromMembers = state.memberNames.find(n => n && !isMe(n));
-    if (otherFromMembers) return otherFromMembers.trim();
+  function displayDashboard(records, yearVal, monthVal) {
+    const sharedAccountTotal = records
+      .filter(t => isSharedAccountTx(t))
+      .reduce((n, t) => n + Number(t.amount), 0);
 
-    const actor = (tx?.actor_name || '').trim();
-    if (actor && !isMe(actor)) return actor;
-
-    return 'Den andre deltakeren';
-  }
-
-function displayDashboard(records, yearVal, monthVal) {
-    const sumScope = scope => records.filter(t => t.payment_scope === scope).reduce((n, t) => n + Number(t.amount), 0);
-    if ($('shared-total')) $('shared-total').textContent = money(sumScope('shared'));
+    if ($('shared-total')) $('shared-total').textContent = money(sharedAccountTotal);
     if ($('dashboard-cycle-label')) $('dashboard-cycle-label').textContent = `${monthLabel(monthVal)} ${yearVal}`;
 
-    // Beregn 50/50-gjeld i felles budsjetter (utenom det som er markert som vippset)
+    // Kun utlegg som IKKE er betalt fra felles konto (og ikke er vippset) gir gjeld
     const owedToMeByPerson = new Map();
     const iOweByPerson = new Map();
 
     for (const t of records) {
-      if (!isSharedBudgetTx(t)) continue;
+      if (isSharedAccountTx(t)) continue;
+      const b = getBudget(t.budget_id);
+      if (b?.kind !== 'shared') continue;
       if (t.is_vippset) continue;
 
       const half = Number(t.amount) / 2;
@@ -691,6 +695,7 @@ function displayDashboard(records, yearVal, monthVal) {
       list.append(li);
     }
   }
+
   async function refresh() {
     if (!state.user) return;
     const revision = ++state.revision;
@@ -891,7 +896,6 @@ function displayDashboard(records, yearVal, monthVal) {
     });
 
     $('selected-budget')?.addEventListener('change', e => selectBudget(e.target.value));
-    $('trans-budget')?.addEventListener('change', () => { if (!$('trans-budget').value && $('trans-scope')) $('trans-scope').value = 'personal'; });
     $('previous-period')?.addEventListener('click', () => { state.offset = Math.max(0, state.offset - 1); refresh(); });
     $('next-period')?.addEventListener('click', () => { state.offset++; refresh(); });
     $('dashboard-year')?.addEventListener('change', refresh);
@@ -918,6 +922,7 @@ function displayDashboard(records, yearVal, monthVal) {
       e.preventDefault(); clearStatus();
       const b = getBudget($('trans-budget').value);
       if (b && $('trans-date').value < b.first_start) return status('Betalingsdato er før budsjettets første periode.');
+      const fromSharedAccount = $('trans-shared-account')?.value === 'yes';
       const { error } = await db.from('transactions').insert({
         user_id: state.user.id,
         budget_id: b?.id || null,
@@ -926,13 +931,14 @@ function displayDashboard(records, yearVal, monthVal) {
         description: $('trans-desc').value.trim() || null,
         purchase_date: $('trans-date').value,
         category: $('trans-category').value,
-        payment_scope: $('trans-scope').value,
+        payment_scope: fromSharedAccount ? 'shared' : 'personal',
         is_vippset: false
       });
       if (error) return status(`Kunne ikke lagre betaling: ${error.message}`);
       $('transaction-form').reset();
       $('trans-date').value = today();
       $('trans-budget').value = b?.id || '';
+      if ($('trans-shared-account')) $('trans-shared-account').value = 'no';
       status('Betalingen er lagret.', 'success');
       await refresh();
       window.switchView('history');
