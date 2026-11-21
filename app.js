@@ -178,6 +178,7 @@ window.switchView = (viewName) => {
     state.user = null;
     state.budgets = [];
     state.selected = '';
+    document.body.classList.remove('is-authenticated');
     setDrawerOpen(false);
     setBudgetDropdownOpen(false);
     $('auth-section')?.classList.remove('hidden');
@@ -191,6 +192,7 @@ window.switchView = (viewName) => {
 
   async function showApp(user) {
     state.user = user;
+    document.body.classList.add('is-authenticated');
     $('auth-section')?.classList.add('hidden');
     $('app-section')?.classList.remove('hidden');
     $('mobile-header')?.classList.remove('hidden');

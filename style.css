@@ -36,7 +36,7 @@ body {
   width: 100%;
 }
 
-/* --- SIDEMENY (iPad og større: >= 768px) --- */
+/* --- SIDEMENY (iPad og større: >= 768px, kun når innlogget) --- */
 .sidebar {
   display: none;
   flex-direction: column;
@@ -375,11 +375,11 @@ body {
 }
 
 .auth-wrapper {
-  flex: 1;
+  width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  min-height: calc(100dvh - 28px);
+  padding-top: 8px;
 }
 
 .auth-card {
@@ -704,7 +704,7 @@ select:focus {
 
 /* --- iPAD OG STØRRE (>= 768px) --- */
 @media (min-width: 768px) {
-  .sidebar {
+  body.is-authenticated .sidebar {
     display: flex;
   }
 
@@ -715,19 +715,24 @@ select:focus {
   }
 
   .main-content {
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    margin-left: 0;
+    width: 100%;
     padding: 20px 28px;
     transition: margin-left 0.2s ease, width 0.2s ease;
   }
 
-  body.sidebar-minimized .main-content {
+  body.is-authenticated .main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+  }
+
+  body.is-authenticated.sidebar-minimized .main-content {
     margin-left: var(--sidebar-collapsed-width);
     width: calc(100% - var(--sidebar-collapsed-width));
   }
 
   .auth-wrapper {
-    min-height: calc(100dvh - 40px);
+    padding-top: 24px;
   }
 
   .grid-2 {
