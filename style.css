@@ -15,6 +15,7 @@
   --radius: 12px;
   --sidebar-width: 256px;
   --sidebar-collapsed-width: 72px;
+  --field-height: 42px;
 }
 
 * {
@@ -38,7 +39,7 @@ body {
   width: 100%;
 }
 
-/* --- SIDEMENY (iPad og større: >= 768px, kun når innlogget) --- */
+/* --- SIDEMENY (iPad og større: >= 768px, vises kun når innlogget) --- */
 .sidebar {
   display: none;
   flex-direction: column;
@@ -90,7 +91,8 @@ body {
 .sidebar.minimized .nav-label,
 .sidebar.minimized .nav-dropdown-btn,
 .sidebar.minimized .nav-dropdown-list,
-.sidebar.minimized .user-info {
+.sidebar.minimized .user-info,
+.sidebar.minimized #logout-btn-sidebar {
   display: none;
 }
 
@@ -253,10 +255,29 @@ body {
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
   margin-top: 8px;
+}
+
+.profile-trigger {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-trigger:hover {
+  background: #f8fafc;
 }
 
 .avatar-circle {
@@ -265,7 +286,7 @@ body {
   background: #e0e7ff;
   color: var(--primary);
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
@@ -281,9 +302,16 @@ body {
   display: block;
   font-weight: 600;
   font-size: 0.86rem;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.profile-sub {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--primary);
 }
 
 .btn-text {
@@ -292,12 +320,14 @@ body {
   color: var(--secondary);
   font-size: 0.78rem;
   cursor: pointer;
-  padding: 0;
-  margin-top: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .btn-text:hover {
   color: var(--primary);
+  background: #f8fafc;
 }
 
 /* --- MOBIL HEADER & HAMBURGER-DRAWER (< 768px) --- */
@@ -328,15 +358,17 @@ body {
 }
 
 .avatar-small {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   background: #e0e7ff;
   color: var(--primary);
+  border: 1px solid #c7d2fe;
   border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .drawer-backdrop {
@@ -578,8 +610,9 @@ h3 {
   color: var(--primary);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.86rem;
+  height: var(--field-height);
+  padding: 0 14px;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
@@ -598,7 +631,7 @@ h3 {
   margin-top: 10px;
 }
 
-/* --- SKJEMAER --- */
+/* --- SKJEMAER: ALLE FELTER LIKE HØYE --- */
 .modern-form {
   display: flex;
   flex-direction: column;
@@ -626,10 +659,12 @@ label {
 input,
 select {
   width: 100%;
-  padding: 9px 12px;
+  height: var(--field-height);
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 0.94rem;
+  line-height: 1.2;
   background: #fff;
   color: var(--text-main);
 }
@@ -645,16 +680,31 @@ select:focus {
   background: var(--primary);
   color: #fff;
   border: none;
-  padding: 10px 14px;
+  height: var(--field-height);
+  padding: 0 16px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.92rem;
   cursor: pointer;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-primary:hover {
   background: var(--primary-dark);
+}
+
+.btn-register-quick {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+
+.btn-register-quick .material-icons-outlined {
+  font-size: 18px;
 }
 
 .btn-icon {
@@ -682,7 +732,7 @@ select:focus {
   justify-content: space-between;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 14px;
 }
 
@@ -690,9 +740,17 @@ select:focus {
   margin-bottom: 2px;
 }
 
-.cycle-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-muted);
+.cycle-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.dashboard-header-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .date-dropdowns {
@@ -714,7 +772,8 @@ select:focus {
 .mini-select {
   width: auto;
   min-width: 96px;
-  padding: 6px 10px;
+  height: 36px;
+  padding: 0 10px;
   font-size: 0.85rem;
   border-radius: 8px;
 }
@@ -747,12 +806,26 @@ select:focus {
 
 .stat-value {
   display: block;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-main);
 }
 
-/* --- FORBRUK PER MEDLEM I BUDSJETT --- */
+/* --- BUDSJETT-KORT (X kr / X kr) & FORBRUK PER MEDLEM --- */
+.budget-summary-cards {
+  margin: 10px 0 14px;
+}
+
+.budget-ratio-card {
+  background: var(--primary-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .member-spending-section {
   margin: 12px 0 6px;
 }
@@ -773,6 +846,40 @@ select:focus {
 .member-stat-card.highlight {
   background: var(--primary-soft);
   border-color: #bfdbfe;
+}
+
+/* --- PROFILSIDE --- */
+.profile-info-box {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-key {
+  font-size: 0.82rem;
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.profile-code {
+  font-size: 0.78rem;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  word-break: break-all;
 }
 
 /* --- LISTER --- */
@@ -814,12 +921,6 @@ select:focus {
   font-weight: 700;
   color: var(--primary);
   font-size: 0.92rem;
-}
-
-.total-display {
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 10px 0;
 }
 
 .hint {

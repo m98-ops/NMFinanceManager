@@ -67,6 +67,8 @@ window.switchView = (viewName) => {
     return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
   };
 
+  const monthLabelFromStr = monthStr => monthNames.find(m => m.value === monthStr)?.label || monthStr;
+
   const nextDate = s => { const d = parseDate(s); d.setDate(d.getDate() + 1); return dateString(d); };
   const today = () => dateString(new Date());
 
@@ -136,6 +138,40 @@ window.switchView = (viewName) => {
       el.textContent = '';
       el.className = 'message hidden';
     }
+  }
+
+  function syncUserDisplay() {
+    if (!state.user) return;
+    const meta = state.user.user_metadata || {};
+    const displayName = meta.first_name || state.user.email;
+    if ($('user-name-sidebar')) $('user-name-sidebar').textContent = displayName;
+    if ($('user-name-mobile')) $('user-name-mobile').textContent = displayName;
+
+    if ($('profile-email-display')) $('profile-email-display').textContent = state.user.email || '-';
+    if ($('profile-id-display')) $('profile-id-display').textContent = state.user.id || '-';
+    if ($('profile-firstname')) $('profile-firstname').value = meta.first_name || '';
+    if ($('profile-lastname')) $('profile-lastname').value = meta.last_name || '';
+    if ($('profile-username')) $('profile-username').value = meta.username || '';
+  }
+
+  async function openProfileView() {
+    if (!state.user) return;
+    syncUserDisplay();
+    try {
+      const { data } = await db
+        .from('profiles')
+        .select('first_name,last_name,username')
+        .eq('id', state.user.id)
+        .maybeSingle();
+      if (data) {
+        if ($('profile-firstname') && data.first_name) $('profile-firstname').value = data.first_name;
+        if ($('profile-lastname') && data.last_name) $('profile-lastname').value = data.last_name;
+        if ($('profile-username') && data.username) $('profile-username').value = data.username;
+      }
+    } catch (_) {
+      // Faller tilbake til user_metadata
+    }
+    switchView('profile');
   }
 
   function populateYearAndMonthSelects() {
@@ -341,9 +377,7 @@ window.switchView = (viewName) => {
     $('auth-section')?.classList.add('hidden');
     $('app-section')?.classList.remove('hidden');
     $('mobile-header')?.classList.remove('hidden');
-    const name = user.user_metadata?.first_name || user.email;
-    if ($('user-name-sidebar')) $('user-name-sidebar').textContent = name;
-    if ($('user-name-mobile')) $('user-name-mobile').textContent = name;
+    syncUserDisplay();
     await loadBudgets();
     switchView('dashboard');
   }
@@ -552,8 +586,12 @@ window.switchView = (viewName) => {
     const spent = records
       .filter(t => t.budget_id === b.id && (t.payment_scope === 'shared' || t.user_id === state.user.id))
       .reduce((sum, t) => sum + Number(t.amount), 0);
+    const limit = Number(b.amount_limit);
     if ($('budget-balance')) {
-      $('budget-balance').textContent = `${money(spent)} av ${money(Number(b.amount_limit))} · ${money(Number(b.amount_limit) - spent)} igjen`;
+      $('budget-balance').textContent = `${money(spent)} / ${money(limit)}`;
+    }
+    if ($('budget-remaining')) {
+      $('budget-remaining').textContent = `${money(limit - spent)} igjen i perioden`;
     }
     renderMemberSpending(b, records);
   }
@@ -609,13 +647,13 @@ window.switchView = (viewName) => {
     }
   }
 
-  function displayDashboard(records, cycleRange) {
+  function displayDashboard(records, yearVal, monthVal) {
     const personal = records.filter(t => t.payment_scope === 'personal');
     const shared = records.filter(t => t.payment_scope === 'shared');
     if ($('personal-total')) $('personal-total').textContent = money(personal.reduce((n, t) => n + Number(t.amount), 0));
     if ($('shared-total')) $('shared-total').textContent = money(shared.reduce((n, t) => n + Number(t.amount), 0));
     if ($('dashboard-cycle-label')) {
-      $('dashboard-cycle-label').textContent = `Periode (25.–25.): ${formatDateNO(cycleRange.start)} – ${formatDateNO(cycleRange.end)}`;
+      $('dashboard-cycle-label').textContent = `${monthLabelFromStr(monthVal)} ${yearVal}`;
     }
 
     const sums = new Map();
@@ -671,7 +709,7 @@ window.switchView = (viewName) => {
         }
       }
 
-      displayDashboard(cycleRows, cycle);
+      displayDashboard(cycleRows, yearVal, monthVal);
       displayDetail(b, periodRows);
       displayTransactions(b ? periodRows : cycleRows, Boolean(b));
     } catch (err) {
@@ -693,6 +731,56 @@ window.switchView = (viewName) => {
         e.preventDefault();
         window.switchView(item.dataset.view);
       });
+    });
+
+    $('dashboard-register-btn')?.addEventListener('click', () => {
+      if (state.selected && $('trans-budget')) {
+        $('trans-budget').value = state.selected;
+        updateScope();
+      }
+      window.switchView('register');
+    });
+
+    $('open-profile-sidebar')?.addEventListener('click', openProfileView);
+    $('open-profile-mobile')?.addEventListener('click', openProfileView);
+    $('open-profile-header')?.addEventListener('click', openProfileView);
+
+    $('profile-form')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!state.user) return;
+      clearStatus();
+
+      const firstName = $('profile-firstname').value.trim();
+      const lastName = $('profile-lastname').value.trim();
+      const username = $('profile-username').value.trim();
+
+      const { data: authData, error: authError } = await db.auth.updateUser({
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          username
+        }
+      });
+      if (authError) return status(`Kunne ikke oppdatere profil: ${authError.message}`);
+      if (authData?.user) state.user = authData.user;
+
+      const { error: profileError } = await db
+        .from('profiles')
+        .upsert({
+          id: state.user.id,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          username: username || null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+        return status(`Profil oppdatert i auth, men feil i profiles-tabellen: ${profileError.message}`);
+      }
+
+      syncUserDisplay();
+      status('Profilen din er oppdatert.', 'success');
+      await refresh();
     });
 
     $('hamburger-btn')?.addEventListener('click', () => setDrawerOpen(true));

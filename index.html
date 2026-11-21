@@ -57,11 +57,14 @@
     </nav>
 
     <div class="user-profile">
-      <div class="avatar-circle">👤</div>
-      <div class="user-info">
-        <span id="user-name-sidebar" class="name">Bruker</span>
-        <button id="logout-btn-sidebar" type="button" class="btn-text">Logg ut</button>
-      </div>
+      <button id="open-profile-sidebar" type="button" class="profile-trigger" title="Åpne profil">
+        <span class="avatar-circle">👤</span>
+        <span class="user-info">
+          <span id="user-name-sidebar" class="name">Bruker</span>
+          <span class="profile-sub">Se profil</span>
+        </span>
+      </button>
+      <button id="logout-btn-sidebar" type="button" class="btn-text">Logg ut</button>
     </div>
   </aside>
 
@@ -108,11 +111,14 @@
     </nav>
 
     <div class="user-profile">
-      <div class="avatar-circle">👤</div>
-      <div class="user-info">
-        <span id="user-name-mobile" class="name">Bruker</span>
-        <button id="logout-btn-mobile" type="button" class="btn-text">Logg ut</button>
-      </div>
+      <button id="open-profile-mobile" type="button" class="profile-trigger" title="Åpne profil">
+        <span class="avatar-circle">👤</span>
+        <span class="user-info">
+          <span id="user-name-mobile" class="name">Bruker</span>
+          <span class="profile-sub">Se profil</span>
+        </span>
+      </button>
+      <button id="logout-btn-mobile" type="button" class="btn-text">Logg ut</button>
     </div>
   </aside>
 
@@ -127,7 +133,7 @@
         </button>
         <h1>NM Finance</h1>
       </div>
-      <div class="avatar-small">👤</div>
+      <button id="open-profile-header" type="button" class="avatar-small" title="Åpne profil" aria-label="Åpne profil">👤</button>
     </header>
 
     <!-- AUTH SECTION -->
@@ -191,19 +197,26 @@
             <div class="summary-header">
               <div>
                 <h2>Oversikt</h2>
-                <span id="dashboard-cycle-label" class="cycle-subtitle">Periode: 25. – 25.</span>
+                <div id="dashboard-cycle-label" class="cycle-title">November 2026</div>
               </div>
-              <div class="date-dropdowns">
-                <div class="select-group">
-                  <label for="dashboard-year">År</label>
-                  <select id="dashboard-year" class="mini-select"></select>
+              <div class="dashboard-header-controls">
+                <div class="date-dropdowns">
+                  <div class="select-group">
+                    <label for="dashboard-year">År</label>
+                    <select id="dashboard-year" class="mini-select"></select>
+                  </div>
+                  <div class="select-group">
+                    <label for="dashboard-month">Måned</label>
+                    <select id="dashboard-month" class="mini-select"></select>
+                  </div>
                 </div>
-                <div class="select-group">
-                  <label for="dashboard-month">Måned</label>
-                  <select id="dashboard-month" class="mini-select"></select>
-                </div>
+                <button id="dashboard-register-btn" type="button" class="btn-primary btn-register-quick">
+                  <span class="material-icons-outlined">add</span>
+                  <span>Registrer</span>
+                </button>
               </div>
             </div>
+
             <div class="stats-grid">
               <div class="stat-card primary">
                 <span class="stat-label">Mine betalinger</span>
@@ -228,7 +241,6 @@
             </button>
           </div>
 
-          <!-- Egen boks for opprett/endre budsjett (skjult til man trykker + Nytt budsjett eller Endre) -->
           <div id="new-budget-drawer" class="card hidden">
             <div class="card-header-row">
               <h2 id="budget-form-title">Opprett nytt budsjett</h2>
@@ -269,7 +281,6 @@
             </form>
           </div>
 
-          <!-- Egen boks over eksisterende budsjetter man eier eller er medlem i -->
           <div class="card">
             <h2>Dine budsjetter</h2>
             <p class="hint">Budsjetter du eier eller er medlem i.</p>
@@ -348,7 +359,14 @@
                 <strong id="period-label">Periode</strong>
                 <button id="next-period" type="button" class="btn-icon">→</button>
               </div>
-              <p id="budget-balance" class="total-display"></p>
+
+              <div class="budget-summary-cards">
+                <div class="budget-ratio-card">
+                  <span class="stat-label">Brukt / Budsjett</span>
+                  <strong id="budget-balance" class="stat-value">0,00 kr / 0,00 kr</strong>
+                  <span id="budget-remaining" class="row-meta"></span>
+                </div>
+              </div>
 
               <div class="member-spending-section">
                 <h3>Forbruk per medlem</h3>
@@ -360,7 +378,6 @@
             <ul id="transactions-list" class="rows"></ul>
           </div>
 
-          <!-- DELING UTENFOR HOVEDBOKSEN -->
           <div id="share-outside-box" class="outside-share-panel hidden">
             <div class="outside-share-header">
               <button id="toggle-share-input-btn" type="button" class="btn-secondary-action">
@@ -378,6 +395,46 @@
             </div>
           </div>
         </div>
+
+        <!-- PROFILE VIEW -->
+        <div id="view-profile" class="view-content hidden">
+          <div class="card">
+            <div class="card-header-row">
+              <h2>Min profil</h2>
+              <button type="button" class="btn-chip" onclick="switchView('dashboard')">Tilbake til dashboard</button>
+            </div>
+
+            <div class="profile-info-box">
+              <div class="profile-row">
+                <span class="profile-key">E-post</span>
+                <strong id="profile-email-display">-</strong>
+              </div>
+              <div class="profile-row">
+                <span class="profile-key">Bruker-ID</span>
+                <code id="profile-id-display" class="profile-code">-</code>
+              </div>
+            </div>
+
+            <form id="profile-form" class="modern-form">
+              <div class="grid-2">
+                <div class="input-group">
+                  <label for="profile-firstname">Fornavn</label>
+                  <input id="profile-firstname" type="text" placeholder="Fornavn">
+                </div>
+                <div class="input-group">
+                  <label for="profile-lastname">Etternavn</label>
+                  <input id="profile-lastname" type="text" placeholder="Etternavn">
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="profile-username">Brukernavn</label>
+                <input id="profile-username" type="text" placeholder="Brukernavn">
+              </div>
+              <button type="submit" class="btn-primary">Lagre profil</button>
+            </form>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
