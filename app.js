@@ -798,6 +798,10 @@ window.switchView = viewName => {
     if ($('trans-date')) $('trans-date').value = today();
     if ($('trans-category')) categories.forEach(c => $('trans-category').add(new Option(c, c)));
 
+    $('dashboard-refresh-btn')?.addEventListener('click', () => {
+      window.location.reload();
+    });
+
     document.querySelectorAll('.nav-item[data-view]').forEach(item => {
       item.addEventListener('click', e => {
         e.preventDefault();

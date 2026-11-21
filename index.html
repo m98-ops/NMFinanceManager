@@ -2,7 +2,10 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NM Finance">
   <title>NM Finance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -170,7 +173,12 @@
           <div class="card summary-card">
             <div class="summary-header">
               <div>
-                <h2>Oversikt</h2>
+                <div class="dashboard-title-row">
+                  <h2>Oversikt</h2>
+                  <button id="dashboard-refresh-btn" type="button" class="btn-icon refresh-btn" title="Last siden på nytt" aria-label="Last siden på nytt">
+                    <span class="material-icons-outlined">refresh</span>
+                  </button>
+                </div>
                 <div id="dashboard-cycle-label" class="cycle-title">November 2026</div>
               </div>
               <div class="dashboard-header-controls">
