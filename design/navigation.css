@@ -34,7 +34,7 @@
   text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.92rem; transition: background-color 0.15s, color 0.15s;
 }
 .sidebar .nav-item:hover { background: var(--bg-subtle); color: var(--ink); }
-.sidebar .nav-item.active { background: var(--surface-sage); color: var(--ink); font-weight: 700; }
+.sidebar .nav-item.active { background: #cfecef; color: var(--ink); font-weight: 700; }
 .sidebar .nav-item .material-icons-outlined { font-size: 20px; flex-shrink: 0; }
 
 .nav-dropdown-btn {
@@ -54,7 +54,7 @@
   font-size: 0.84rem; color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 6px;
 }
 .nav-dropdown-item:hover { background: var(--bg-subtle); }
-.nav-dropdown-item.selected { background: var(--surface-sage); font-weight: 700; }
+.nav-dropdown-item.selected { background: #cfecef; font-weight: 700; }
 .nav-dropdown-badge, .dropdown-empty { font-size: 0.75rem; color: var(--secondary); }
 .dropdown-empty { padding: 6px 10px; }
 
@@ -65,37 +65,66 @@
 }
 .profile-trigger:hover { background: var(--bg-subtle); }
 .avatar-circle {
-  background: var(--surface-sage); color: var(--ink); border: 1px solid var(--border); border-radius: 50%;
+  background: #cfecef; color: var(--ink); border: 1px solid var(--border); border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 36px; height: 36px; font-weight: 700;
 }
 .user-info { flex: 1; min-width: 0; }
 .user-info .name { display: block; font-weight: 600; font-size: 0.86rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .profile-sub { display: block; font-size: 0.74rem; color: var(--primary); font-weight: 600; }
 
-/* Mobil bunnmeny (< 768px) */
+/* Mobil bunnmeny (< 768px) — Mørk bar med klar blå aktiv markering */
 .mobile-bottom-nav {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: calc(var(--bottom-nav-h) + calc(env(safe-area-inset-bottom, 0px) * 0.5));
   padding: 6px 10px calc(6px + calc(env(safe-area-inset-bottom, 0px) * 0.5));
-  background: var(--bg-card); border-top: 1px solid var(--border); box-shadow: 0 -4px 18px rgba(24, 43, 35, 0.08);
+  background: #0d1829;
+  border-top: 1px solid #1d2d44;
+  box-shadow: 0 -6px 20px rgba(9, 20, 35, 0.25);
   display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; justify-items: center; z-index: 220;
 }
+
 .bottom-nav-item {
   background: none; border: none; padding: 4px 2px; width: 100%; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 2px; color: var(--secondary); cursor: pointer; border-radius: 10px;
+  align-items: center; justify-content: center; gap: 3px; color: #8c9bb0; cursor: pointer; border-radius: 10px;
+  transition: color 0.16s ease, transform 0.14s ease;
 }
 .bottom-nav-item .material-icons-outlined { font-size: 23px; line-height: 1; }
 .bottom-nav-label { font-size: 0.68rem; font-weight: 600; white-space: nowrap; }
-.bottom-nav-item.active { color: var(--primary); }
-.bottom-nav-item.active .bottom-nav-label { font-weight: 700; }
 
-.bottom-nav-center-btn {
-  width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--ink); color: #fcfbf7;
-  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
-  box-shadow: 0 6px 14px rgba(24, 43, 35, 0.25); transition: transform 0.14s ease, background-color 0.15s ease;
+/* Aktiv state: klar blå ikon- og tekstfarge */
+.bottom-nav-item.active {
+  color: #4cc2ff;
 }
-.bottom-nav-center-btn .material-icons-outlined { font-size: 26px; line-height: 1; }
-.bottom-nav-center-btn:active, .bottom-nav-center-btn.active { background: var(--primary); transform: scale(0.96); }
+.bottom-nav-item.active .bottom-nav-label {
+  color: #4cc2ff;
+  font-weight: 700;
+}
+
+/* Midtknappen (Registrer) */
+.bottom-nav-center-btn {
+  background: none; border: none; padding: 4px 2px; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: #8c9bb0; cursor: pointer; transition: color 0.16s ease, transform 0.14s ease;
+}
+.bottom-nav-center-btn .center-icon-pill {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #1b2c46; color: #dbe6f5;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+.bottom-nav-center-btn .material-icons-outlined { font-size: 21px; line-height: 1; }
+.bottom-nav-center-btn .bottom-nav-label { font-size: 0.68rem; font-weight: 600; white-space: nowrap; }
+
+.bottom-nav-center-btn.active .center-icon-pill,
+.bottom-nav-center-btn:active .center-icon-pill {
+  background: #3aa8eb;
+  color: #071626;
+  box-shadow: 0 0 14px rgba(58, 168, 235, 0.45);
+}
+.bottom-nav-center-btn.active .bottom-nav-label {
+  color: #4cc2ff;
+  font-weight: 700;
+}
 
 .arrow-toggle-plain {
   background: none; border: none; padding: 0; margin: 0; color: var(--secondary);
