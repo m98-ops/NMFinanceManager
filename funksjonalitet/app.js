@@ -41,6 +41,7 @@ window.switchView = viewName => {
   const getBudget = id => state.budgets.find(b => b.id === id);
   const isSharedTx = t => t.payment_scope === 'shared';
   const isDebtTx = t => !isSharedTx(t) && getBudget(t.budget_id)?.kind === 'shared';
+  const isIOweTx = t => isDebtTx(t) && t.user_id !== state.user?.id;
 
   const goToRegister = budgetId => {
     if (budgetId && $('trans-budget')) $('trans-budget').value = budgetId;
@@ -294,15 +295,6 @@ window.switchView = viewName => {
     refresh();
   }
 
-  function otherMemberName(tx) {
-    const meta = state.user?.user_metadata || {};
-    const mine = new Set([meta.first_name, [meta.first_name, meta.last_name].filter(Boolean).join(' '), state.user?.email].map(s => (s || '').trim().toLowerCase()).filter(Boolean));
-    const fromMembers = state.memberNames.find(n => n && !mine.has(n.trim().toLowerCase()));
-    if (fromMembers) return fromMembers.trim();
-    const actor = (tx?.actor_name || '').trim();
-    return actor && !mine.has(actor.toLowerCase()) ? actor : 'Den andre deltakeren';
-  }
-
   function renderMemberSpending(b, records) {
     const grid = $('member-spending-grid');
     if (!grid || !b) return;
@@ -394,9 +386,8 @@ window.switchView = viewName => {
     return label;
   }
 
-  function renderCleanRow(t, displayAmount, allowVippsToggle) {
+  function renderCleanRow(t, displayAmount, showVippsControls) {
     const li = document.createElement('li');
-    const isOwn = t.user_id === state.user?.id;
     const noteText = (t.description || '').trim();
 
     const top = document.createElement('div');
@@ -412,12 +403,8 @@ window.switchView = viewName => {
 
     const right = document.createElement('div');
     right.className = 'row-right';
-    if (allowVippsToggle && !isOwn) right.append(createVippsCheckbox(t));
-    else if (allowVippsToggle && t.is_vippset) {
-      const badge = document.createElement('span');
-      badge.className = 'vipps-settled-badge';
-      badge.textContent = 'Vippset';
-      right.append(badge);
+    if (showVippsControls) {
+      right.append(createVippsCheckbox(t));
     }
 
     if (noteText || right.childNodes.length) {
@@ -441,23 +428,19 @@ window.switchView = viewName => {
       li.textContent = 'Ingen betalinger i denne perioden.';
       return list.append(li);
     }
-    records.forEach(t => list.append(renderCleanRow(t, Number(t.amount), isDebtTx(t))));
+    records.forEach(t => list.append(renderCleanRow(t, Number(t.amount), false)));
   }
 
   function displayDebtView(records, yVal, mVal) {
     const list = $('debt-items-list');
     if (!list) return;
     list.replaceChildren();
-    if ($('debt-view-subtitle')) $('debt-view-subtitle').textContent = `Periode: ${monthName(mVal)} ${yVal} · Utlegg utenfor felles konto (50/50-andel).`;
+    if ($('debt-view-subtitle')) $('debt-view-subtitle').textContent = `Periode: ${monthName(mVal)} ${yVal}`;
 
-    const items = records.filter(isDebtTx);
-    const unsettled = items.filter(t => !t.is_vippset).reduce((s, t) => s + Number(t.amount) / 2, 0);
-    if ($('debt-view-summary-label')) $('debt-view-summary-label').textContent = 'Ikke vippset (50/50)';
-    if ($('debt-view-summary-amount')) $('debt-view-summary-amount').textContent = money(unsettled);
-
+    const items = records.filter(isIOweTx);
     if (!items.length) {
       const li = document.createElement('li');
-      li.textContent = 'Ingen utlegg som gir gjeld i denne perioden.';
+      li.textContent = 'Du har ingen utlegg du skylder i denne perioden.';
       return list.append(li);
     }
     items.forEach(t => list.append(renderCleanRow(t, Number(t.amount) / 2, true)));
@@ -468,33 +451,12 @@ window.switchView = viewName => {
     if ($('shared-total')) $('shared-total').textContent = money(sharedTotal);
     if ($('dashboard-cycle-label')) $('dashboard-cycle-label').textContent = `${monthName(mVal)} ${yVal}`;
 
-    const owedToMe = new Map(), iOwe = new Map();
-    for (const t of records) {
-      if (!isDebtTx(t) || t.is_vippset) continue;
-      const half = Number(t.amount) / 2;
-      if (t.user_id === state.user?.id) {
-        const d = otherMemberName(t);
-        owedToMe.set(d, (owedToMe.get(d) || 0) + half);
-      } else {
-        const c = (t.actor_name || '').trim() || 'Deltaker';
-        iOwe.set(c, (iOwe.get(c) || 0) + half);
-      }
-    }
+    const iOweTotal = records
+      .filter(t => isIOweTx(t) && !t.is_vippset)
+      .reduce((s, t) => s + Number(t.amount) / 2, 0);
 
-    const sumToMe = [...owedToMe.values()].reduce((s, v) => s + v, 0);
-    const sumIOwe = [...iOwe.values()].reduce((s, v) => s + v, 0);
-    const debtor = [...owedToMe.entries()].find(([, v]) => v > 0)?.[0] || 'Kjæresten';
-    const creditor = [...iOwe.entries()].find(([, v]) => v > 0)?.[0] || 'kjæresten';
-
-    if ($('debt-box-label') && $('debt-box-value')) {
-      if (sumToMe > 0 && sumIOwe === 0) { $('debt-box-label').textContent = `${debtor} skylder`; $('debt-box-value').textContent = money(sumToMe); }
-      else if (sumIOwe > 0 && sumToMe === 0) { $('debt-box-label').textContent = `Du skylder ${creditor}`; $('debt-box-value').textContent = money(sumIOwe); }
-      else if (sumToMe > 0 || sumIOwe > 0) {
-        const net = sumToMe - sumIOwe;
-        $('debt-box-label').textContent = net >= 0 ? `${debtor} skylder (netto)` : `Du skylder ${creditor} (netto)`;
-        $('debt-box-value').textContent = money(Math.abs(net));
-      } else { $('debt-box-label').textContent = 'Gjeld / oppgjør'; $('debt-box-value').textContent = money(0); }
-    }
+    if ($('debt-box-label')) $('debt-box-label').textContent = 'Skylder';
+    if ($('debt-box-value')) $('debt-box-value').textContent = money(iOweTotal);
 
     const sums = new Map();
     records.forEach(t => sums.set(t.category, (sums.get(t.category) || 0) + Number(t.amount)));
