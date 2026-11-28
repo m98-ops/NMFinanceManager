@@ -118,18 +118,61 @@ window.switchView = viewName => {
     window.switchView('profile');
   }
 
+  const VAPID_PUBLIC_KEY = 'L3x-gWS3uelNcyCiLg3NcbublyGUXUvhPeQuDjvrPydnL987nQQbyW3ZIS06hpM4of4zwJWrLGCBdIDJDRIIMQ';
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+  }
+
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return null;
+    return navigator.serviceWorker.register('./service-worker.js');
+  }
+
   async function enablePushNotifications() {
+    if (!state.user) return status('Du må være logget inn for å aktivere varsler.');
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       return status('Denne nettleseren støtter ikke push-varsler.');
     }
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      return status('Varsler ble ikke tillatt i nettleseren.');
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      return status('Varsler er ikke tillatt. Sjekk varselinnstillinger på telefonen.');
     }
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) {
-      return status('Varsler er tillatt. Legg til service-worker.js og push-nøkkel for bakgrunnsvarsler på låst skjerm.', 'success');
+
+    const reg = (await navigator.serviceWorker.getRegistration()) || (await registerServiceWorker());
+    if (!reg || !reg.pushManager) {
+      return status('Kunne ikke registrere service worker for varsler.');
     }
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    const json = sub.toJSON();
+    const { error } = await db.from('push_subscriptions').upsert(
+      {
+        user_id: state.user.id,
+        endpoint: json.endpoint,
+        p256dh: json.keys?.p256dh || '',
+        auth: json.keys?.auth || '',
+        user_agent: navigator.userAgent,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'endpoint' }
+    );
+
+    if (error) {
+      return status(`Kunne ikke lagre varselabonnement: ${error.message}`);
+    }
+
     status('Mobilvarsler er aktivert på denne enheten.', 'success');
   }
 
@@ -702,6 +745,7 @@ window.switchView = viewName => {
       $('dashboard-month').value = act.month;
     }
     apply25Cycle();
+    registerServiceWorker();
     if ($('trans-date')) $('trans-date').value = today();
     if ($('trans-category')) CATEGORIES.forEach(c => $('trans-category').add(new Option(c, c)));
 
