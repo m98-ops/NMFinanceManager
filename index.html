@@ -77,7 +77,7 @@
     </div>
   </aside>
 
-<!-- MOBIL BUNN-NAVIGASJON (< 768px) -->
+  <!-- MOBIL BUNN-NAVIGASJON (< 768px) -->
   <nav id="mobile-bottom-nav" class="mobile-bottom-nav hidden" aria-label="Mobilmeny">
     <button type="button" class="bottom-nav-item nav-item active" data-view="dashboard">
       <span class="material-icons-outlined">home</span>
@@ -289,14 +289,17 @@
           <div class="card">
             <h2>Dine budsjetter</h2>
             <p class="hint">Budsjetter du eier eller er medlem i.</p>
-            <ul id="budget-list" class="rows"></ul>
+            <ul id="budget-list" class="rows budget-clean-list"></ul>
           </div>
         </div>
 
         <!-- REGISTER -->
         <div id="view-register" class="view-content hidden">
           <div class="card">
-            <h2>Registrer betaling</h2>
+            <div class="card-header-row">
+              <h2 id="transaction-form-title">Registrer betaling</h2>
+              <button id="cancel-edit-tx-btn" type="button" class="btn-chip hidden">Avbryt redigering</button>
+            </div>
             <p class="hint">Utlegg utenfor felles konto i felles budsjetter deles på 2 (50/50).</p>
             <form id="transaction-form" class="modern-form">
               <div class="input-group">
@@ -334,7 +337,7 @@
                 <label for="trans-desc">Beskrivelse (valgfritt)</label>
                 <input id="trans-desc" maxlength="500" placeholder="Notat...">
               </div>
-              <button type="submit" class="btn-primary">Lagre betaling</button>
+              <button id="transaction-submit-btn" type="submit" class="btn-primary">Lagre betaling</button>
             </form>
           </div>
         </div>
@@ -424,6 +427,10 @@
               <div class="profile-row">
                 <span class="profile-key">Bruker-ID</span>
                 <code id="profile-id-display" class="profile-code">-</code>
+              </div>
+              <div class="profile-row">
+                <span class="profile-key">Mobilvarsler</span>
+                <button id="enable-push-btn" type="button" class="btn-chip">Aktiver varsler</button>
               </div>
             </div>
             <form id="profile-form" class="modern-form">

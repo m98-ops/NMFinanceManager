@@ -18,6 +18,9 @@ window.switchView = viewName => {
   if (!S) return;
   const { db, CATEGORIES, MONTHS, $, hideEl, money, nextDate, today, monthName, fmtDDMM, cycleRange, activeCycle, state, clearStatus, status } = S;
 
+  state.editingTxId = null;
+  state.lastTxRecords = [];
+
   const anchor25Idx = b => {
     const d = S.parseDate(b.first_start);
     return d.getFullYear() * 12 + d.getMonth() + (d.getDate() > 25 ? 1 : 0);
@@ -43,10 +46,52 @@ window.switchView = viewName => {
   const isDebtTx = t => !isSharedTx(t) && getBudget(t.budget_id)?.kind === 'shared';
   const isIOweTx = t => isDebtTx(t) && t.user_id !== state.user?.id;
 
+  const formatExpenseNotification = (actorName, amount, storeName) =>
+    `Nytt utlegg av: ${actorName || 'Deltaker'}. Kr: ${money(Number(amount))} - ${storeName}`;
+
   const goToRegister = budgetId => {
     if (budgetId && $('trans-budget')) $('trans-budget').value = budgetId;
     window.switchView('register');
   };
+
+  function resetTransactionForm() {
+    state.editingTxId = null;
+    const currentBudget = $('trans-budget')?.value || state.selected || '';
+    $('transaction-form')?.reset();
+    if ($('trans-date')) $('trans-date').value = today();
+    if ($('trans-budget')) $('trans-budget').value = currentBudget;
+    if ($('trans-shared-account')) $('trans-shared-account').value = 'no';
+    if ($('transaction-form-title')) $('transaction-form-title').textContent = 'Registrer betaling';
+    if ($('transaction-submit-btn')) $('transaction-submit-btn').textContent = 'Lagre betaling';
+    hideEl($('cancel-edit-tx-btn'), true);
+  }
+
+  function startEditingTransaction(tx) {
+    if (!tx) return;
+    state.editingTxId = tx.id;
+    if ($('trans-budget')) $('trans-budget').value = tx.budget_id || '';
+    if ($('trans-store')) $('trans-store').value = tx.store_name || '';
+    if ($('trans-amount')) $('trans-amount').value = String(Number(tx.amount));
+    if ($('trans-category')) $('trans-category').value = tx.category || CATEGORIES[0];
+    if ($('trans-date')) $('trans-date').value = (tx.purchase_date || '').slice(0, 10) || today();
+    if ($('trans-shared-account')) $('trans-shared-account').value = tx.payment_scope === 'shared' ? 'yes' : 'no';
+    if ($('trans-desc')) $('trans-desc').value = tx.description || '';
+    if ($('transaction-form-title')) $('transaction-form-title').textContent = `Rediger utlegg: ${tx.store_name}`;
+    if ($('transaction-submit-btn')) $('transaction-submit-btn').textContent = 'Lagre endringer';
+    hideEl($('cancel-edit-tx-btn'), false);
+    window.switchView('register');
+    $('trans-store')?.focus();
+  }
+
+  async function deleteTransactionById(txId) {
+    if (!txId) return;
+    clearStatus();
+    const { error } = await db.from('transactions').delete().eq('id', txId);
+    if (error) return status(`Kunne ikke slette utlegg: ${error.message}`);
+    if (state.editingTxId === txId) resetTransactionForm();
+    status('Utlegget er slettet.', 'success');
+    await refresh();
+  }
 
   function syncUserDisplay() {
     if (!state.user) return;
@@ -71,6 +116,21 @@ window.switchView = viewName => {
       }
     } catch (_) {}
     window.switchView('profile');
+  }
+
+  async function enablePushNotifications() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return status('Denne nettleseren støtter ikke push-varsler.');
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      return status('Varsler ble ikke tillatt i nettleseren.');
+    }
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) {
+      return status('Varsler er tillatt. Legg til service-worker.js og push-nøkkel for bakgrunnsvarsler på låst skjerm.', 'success');
+    }
+    status('Mobilvarsler er aktivert på denne enheten.', 'success');
   }
 
   function apply25Cycle() {
@@ -158,10 +218,11 @@ window.switchView = viewName => {
 
   function showAuth() {
     state.revision++;
-    Object.assign(state, { user: null, budgets: [], selected: '', memberNames: [], editingBudgetId: null });
+    Object.assign(state, { user: null, budgets: [], selected: '', memberNames: [], editingBudgetId: null, editingTxId: null, lastTxRecords: [] });
     document.body.classList.remove('is-authenticated');
     setBudgetDropdownOpen(false);
     resetBudgetForm(true);
+    resetTransactionForm();
     hideEl($('auth-section'), false);
     ['app-section', 'mobile-header', 'mobile-bottom-nav'].forEach(id => hideEl($(id), true));
     ['transactions-list', 'budget-list', 'member-spending-grid', 'debt-items-list'].forEach(id => $(id)?.replaceChildren());
@@ -219,9 +280,34 @@ window.switchView = viewName => {
     for (const b of state.budgets) {
       const isOwner = b.owner_id === state.user?.id;
       const li = document.createElement('li');
-      const content = document.createElement('div');
-      const nameRow = document.createElement('div');
-      nameRow.className = 'budget-name-row';
+
+      const mainRow = document.createElement('div');
+      mainRow.className = 'budget-row-main';
+
+      const leftCol = document.createElement('div');
+      leftCol.className = 'budget-left-col';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'budget-button';
+      btn.textContent = b.name;
+      btn.addEventListener('click', () => { selectBudget(b.id); window.switchView('history'); });
+
+      const meta = document.createElement('small');
+      meta.className = 'row-meta';
+      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${isOwner ? 'Eier' : 'Medlem'} · ${period(b, thisPeriod(b)).label}`;
+
+      leftCol.append(btn, meta);
+
+      const rightCol = document.createElement('div');
+      rightCol.className = 'budget-right-col';
+
+      const amount = document.createElement('strong');
+      amount.className = 'amount';
+      amount.textContent = money(Number(b.amount_limit));
+
+      const chevronSlot = document.createElement('span');
+      chevronSlot.className = 'budget-chevron-slot';
 
       let actionsMenu = null;
       if (isOwner) {
@@ -256,27 +342,13 @@ window.switchView = viewName => {
           hideEl(actionsMenu, !open);
           toggleBtn.setAttribute('aria-expanded', String(open));
         });
-        nameRow.append(toggleBtn);
+        chevronSlot.append(toggleBtn);
       }
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'budget-button';
-      btn.textContent = b.name;
-      btn.addEventListener('click', () => { selectBudget(b.id); window.switchView('history'); });
-      nameRow.append(btn);
-
-      const meta = document.createElement('small');
-      meta.className = `row-meta${isOwner ? ' indented' : ''}`;
-      meta.textContent = `${b.kind === 'shared' ? 'Felles' : 'Personlig'} · ${isOwner ? 'Eier' : 'Medlem'} · ${period(b, thisPeriod(b)).label}`;
-
-      content.append(nameRow, meta);
-      if (actionsMenu) content.append(actionsMenu);
-
-      const amount = document.createElement('strong');
-      amount.className = 'amount';
-      amount.textContent = money(Number(b.amount_limit));
-      li.append(content, amount);
+      rightCol.append(amount, chevronSlot);
+      mainRow.append(leftCol, rightCol);
+      li.append(mainRow);
+      if (actionsMenu) li.append(actionsMenu);
       list.append(li);
     }
   }
@@ -386,10 +458,108 @@ window.switchView = viewName => {
     return label;
   }
 
-  function renderCleanRow(t, displayAmount, showVippsControls) {
-    const li = document.createElement('li');
-    const noteText = (t.description || '').trim();
+  function closeAllSwipes(exceptSurface = null) {
+    document.querySelectorAll('.tx-swipe-surface').forEach(el => {
+      if (el !== exceptSurface) {
+        el.classList.remove('swiping');
+        el.style.transform = 'translateX(0px)';
+        delete el.dataset.open;
+      }
+    });
+  }
 
+  function attachSwipeHandlers(surface, tx) {
+    const actionsWidth = 120;
+    const threshold = 48;
+    let startX = 0, startY = 0, baseX = 0, tracking = false, horizontal = false;
+
+    const setX = val => {
+      const clamped = Math.max(-actionsWidth, Math.min(0, val));
+      surface.style.transform = `translateX(${clamped}px)`;
+      return clamped;
+    };
+
+    const onStart = e => {
+      if (e.target.closest('button, input, label')) return;
+      const pt = e.touches?.[0] || e;
+      startX = pt.clientX;
+      startY = pt.clientY;
+      baseX = surface.dataset.open === '1' ? -actionsWidth : 0;
+      tracking = true;
+      horizontal = false;
+      closeAllSwipes(surface);
+    };
+
+    const onMove = e => {
+      if (!tracking) return;
+      const pt = e.touches?.[0] || e;
+      const dx = pt.clientX - startX;
+      const dy = pt.clientY - startY;
+      if (!horizontal) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dx) <= Math.abs(dy)) { tracking = false; return; }
+        horizontal = true;
+        surface.classList.add('swiping');
+      }
+      if (e.cancelable) e.preventDefault();
+      setX(baseX + dx);
+    };
+
+    const onEnd = e => {
+      if (!tracking) return;
+      tracking = false;
+      surface.classList.remove('swiping');
+      if (!horizontal) return;
+      const pt = e.changedTouches?.[0] || e;
+      const finalX = baseX + (pt.clientX - startX);
+      const shouldOpen = finalX < -threshold;
+      setX(shouldOpen ? -actionsWidth : 0);
+      surface.dataset.open = shouldOpen ? '1' : '0';
+    };
+
+    surface.addEventListener('touchstart', onStart, { passive: true });
+    surface.addEventListener('touchmove', onMove, { passive: false });
+    surface.addEventListener('touchend', onEnd);
+    surface.addEventListener('touchcancel', onEnd);
+  }
+
+  function renderCleanRow(t, displayAmount, options = {}) {
+    const { showVipps = false, enableSwipe = false } = options;
+    const li = document.createElement('li');
+
+    const actionsBg = document.createElement('div');
+    actionsBg.className = 'swipe-actions-bg';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'swipe-action-btn swipe-btn-edit';
+    editBtn.title = 'Rediger utlegg';
+    editBtn.setAttribute('aria-label', 'Rediger utlegg');
+    editBtn.innerHTML = '<span class="material-icons-outlined">edit</span>';
+    editBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeAllSwipes();
+      startEditingTransaction(t);
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'swipe-action-btn swipe-btn-delete';
+    delBtn.title = 'Slett utlegg';
+    delBtn.setAttribute('aria-label', 'Slett utlegg');
+    delBtn.innerHTML = '<span class="material-icons-outlined">delete</span>';
+    delBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeAllSwipes();
+      deleteTransactionById(t.id);
+    });
+
+    actionsBg.append(editBtn, delBtn);
+
+    const surface = document.createElement('div');
+    surface.className = 'tx-swipe-surface';
+
+    const noteText = (t.description || '').trim();
     const top = document.createElement('div');
     top.className = 'tx-top-line';
     const title = document.createElement('strong');
@@ -399,13 +569,11 @@ window.switchView = viewName => {
     amt.className = 'amount';
     amt.textContent = money(displayAmount);
     top.append(title, amt);
-    li.append(top);
+    surface.append(top);
 
     const right = document.createElement('div');
     right.className = 'row-right';
-    if (showVippsControls) {
-      right.append(createVippsCheckbox(t));
-    }
+    if (showVipps) right.append(createVippsCheckbox(t));
 
     if (noteText || right.childNodes.length) {
       const bottom = document.createElement('div');
@@ -414,8 +582,16 @@ window.switchView = viewName => {
       note.className = 'tx-note-text';
       note.textContent = noteText;
       bottom.append(note, right);
-      li.append(bottom);
+      surface.append(bottom);
     }
+
+    if (enableSwipe) {
+      li.append(actionsBg, surface);
+      attachSwipeHandlers(surface, t);
+    } else {
+      li.append(surface);
+    }
+
     return li;
   }
 
@@ -428,7 +604,7 @@ window.switchView = viewName => {
       li.textContent = 'Ingen betalinger i denne perioden.';
       return list.append(li);
     }
-    records.forEach(t => list.append(renderCleanRow(t, Number(t.amount), false)));
+    records.forEach(t => list.append(renderCleanRow(t, Number(t.amount), { showVipps: false, enableSwipe: true })));
   }
 
   function displayDebtView(records, yVal, mVal) {
@@ -443,7 +619,7 @@ window.switchView = viewName => {
       li.textContent = 'Du har ingen utlegg du skylder i denne perioden.';
       return list.append(li);
     }
-    items.forEach(t => list.append(renderCleanRow(t, Number(t.amount) / 2, true)));
+    items.forEach(t => list.append(renderCleanRow(t, Number(t.amount) / 2, { showVipps: true, enableSwipe: false })));
   }
 
   function displayDashboard(records, yVal, mVal) {
@@ -503,10 +679,13 @@ window.switchView = viewName => {
         if ($('member-list')) $('member-list').textContent = `Delt med: ${state.memberNames.length ? state.memberNames.join(', ') : 'ingen ennå'}`;
       }
 
+      const activeRows = b ? periodRows : cycleRows;
+      state.lastTxRecords = activeRows;
+
       displayDashboard(cycleRows, yVal, mVal);
       displayDebtView(cycleRows, yVal, mVal);
       displayDetail(b, periodRows);
-      displayTransactions(b ? periodRows : cycleRows);
+      displayTransactions(activeRows);
     } catch (err) {
       if (rev === state.revision) status(`Kunne ikke hente betalinger: ${err.message}`);
     }
@@ -527,6 +706,8 @@ window.switchView = viewName => {
     if ($('trans-category')) CATEGORIES.forEach(c => $('trans-category').add(new Option(c, c)));
 
     $('dashboard-refresh-btn')?.addEventListener('click', () => window.location.reload());
+    $('enable-push-btn')?.addEventListener('click', enablePushNotifications);
+    $('cancel-edit-tx-btn')?.addEventListener('click', resetTransactionForm);
 
     document.querySelectorAll('.nav-item[data-view]').forEach(item => item.addEventListener('click', e => {
       e.preventDefault();
@@ -583,9 +764,12 @@ window.switchView = viewName => {
       $('selected-budget-actions-toggle').setAttribute('aria-expanded', String(open));
     });
 
-    document.addEventListener('click', () => {
-      document.querySelectorAll('.budget-actions-under').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.arrow-toggle-plain').forEach(el => el.setAttribute('aria-expanded', 'false'));
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.tx-swipe-surface, .swipe-actions-bg')) closeAllSwipes();
+      if (!e.target.closest('.budget-actions-under, .arrow-toggle-plain')) {
+        document.querySelectorAll('.budget-actions-under').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.arrow-toggle-plain').forEach(el => el.setAttribute('aria-expanded', 'false'));
+      }
     });
 
     $('toggle-new-budget-btn')?.addEventListener('click', () => {
@@ -683,17 +867,36 @@ window.switchView = viewName => {
       e.preventDefault(); clearStatus();
       const b = getBudget($('trans-budget').value);
       if (b && $('trans-date').value < b.first_start) return status('Betalingsdato er før budsjettets første periode.');
+
+      const payload = {
+        budget_id: b?.id || null,
+        store_name: $('trans-store').value.trim(),
+        amount: Number($('trans-amount').value),
+        description: $('trans-desc').value.trim() || null,
+        purchase_date: $('trans-date').value,
+        category: $('trans-category').value,
+        payment_scope: $('trans-shared-account')?.value === 'yes' ? 'shared' : 'personal'
+      };
+
+      if (state.editingTxId) {
+        const { error } = await db.from('transactions').update(payload).eq('id', state.editingTxId);
+        if (error) return status(`Kunne ikke oppdatere betaling: ${error.message}`);
+        resetTransactionForm();
+        status('Utlegget er oppdatert.', 'success');
+        await refresh();
+        return window.switchView('history');
+      }
+
+      const actorName = state.user.user_metadata?.first_name || state.user.email || 'Bruker';
       const { error } = await db.from('transactions').insert({
-        user_id: state.user.id, budget_id: b?.id || null, store_name: $('trans-store').value.trim(),
-        amount: Number($('trans-amount').value), description: $('trans-desc').value.trim() || null,
-        purchase_date: $('trans-date').value, category: $('trans-category').value,
-        payment_scope: $('trans-shared-account')?.value === 'yes' ? 'shared' : 'personal', is_vippset: false
+        ...payload,
+        user_id: state.user.id,
+        actor_name: actorName,
+        is_vippset: false
       });
       if (error) return status(`Kunne ikke lagre betaling: ${error.message}`);
-      $('transaction-form').reset();
-      $('trans-date').value = today();
-      $('trans-budget').value = b?.id || '';
-      if ($('trans-shared-account')) $('trans-shared-account').value = 'no';
+
+      resetTransactionForm();
       status('Betalingen er lagret.', 'success');
       await refresh();
       window.switchView('history');

@@ -8,7 +8,7 @@
   --secondary: #2d4c61;
   --primary: #074e68;
   --primary-hover: #043649;
-  --danger: #9f2a2a;
+  --danger: #b92b2b;
   --danger-soft: #fae8e8;
   --border: #b8cad8;
   --shadow-sm: 0 2px 6px rgba(9, 29, 43, 0.08);
@@ -151,7 +151,6 @@ input:not([type="checkbox"]):focus, select:focus { outline: none; border-color: 
   color: var(--ink); background: var(--bg-subtle); border: 1px solid var(--border); padding: 3px 8px; border-radius: 999px; cursor: pointer;
 }
 .vipps-toggle input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer; }
-.vipps-settled-badge { font-size: 0.74rem; font-weight: 700; color: var(--secondary); }
 
 .profile-info-box { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
 .profile-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -163,7 +162,49 @@ input:not([type="checkbox"]):focus, select:focus { outline: none; border-color: 
 .rows li { padding: 11px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .rows li:last-child { border-bottom: none; }
 
-.tx-clean-list li { flex-direction: column; gap: 4px; padding: 11px 2px; }
+/* Budsjettliste: lik venstremargin + beløp skjøvet litt inn til venstre med chevron helt til høyre */
+.budget-clean-list li { flex-direction: column; align-items: stretch; gap: 6px; padding: 12px 0; }
+.budget-row-main {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+}
+.budget-left-col { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; flex: 1; }
+.budget-right-col {
+  display: inline-flex; align-items: center; justify-content: flex-end;
+  gap: 10px; margin-right: 12px; flex-shrink: 0;
+}
+.budget-chevron-slot {
+  width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.budget-actions-under { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+
+/* Betalinger & sveip-handlinger */
+.tx-clean-list li {
+  position: relative; overflow: hidden; padding: 0; border-bottom: 1px solid var(--border);
+  display: block; touch-action: pan-y;
+}
+.tx-clean-list li:last-child { border-bottom: none; }
+
+.swipe-actions-bg {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  display: flex; align-items: stretch; z-index: 1;
+}
+.swipe-action-btn {
+  width: 60px; border: none; color: #ffffff; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: filter 0.15s ease;
+}
+.swipe-action-btn:hover { filter: brightness(0.92); }
+.swipe-action-btn .material-icons-outlined { font-size: 20px; }
+.swipe-btn-edit { background: var(--primary); }
+.swipe-btn-delete { background: var(--danger); }
+
+.tx-swipe-surface {
+  position: relative; z-index: 2; background: var(--bg-card);
+  padding: 11px 2px; display: flex; flex-direction: column; gap: 4px;
+  transform: translateX(0); transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tx-swipe-surface.swiping { transition: none; }
+
 .tx-top-line, .tx-bottom-line { width: 100%; display: flex; justify-content: space-between; gap: 10px; }
 .tx-top-line { align-items: baseline; }
 .tx-bottom-line { align-items: center; flex-wrap: wrap; }
@@ -171,7 +212,6 @@ input:not([type="checkbox"]):focus, select:focus { outline: none; border-color: 
 .tx-note-text { color: var(--secondary); font-size: 0.82rem; line-height: 1.35; }
 
 .row-meta { color: var(--secondary); font-size: 0.8rem; display: block; margin-top: 2px; }
-.row-meta.indented { padding-left: 24px; }
 .row-right { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .amount { white-space: nowrap; font-weight: 700; color: var(--ink); font-size: 0.92rem; }
 
